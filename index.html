@@ -1,0 +1,3302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OctoPack 3D — Octopus Cargo &amp; Load Planner</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Three.js & OrbitControls from CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      overflow: hidden;
+      user-select: none;
+    }
+    .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 h-screen w-screen flex flex-col md:flex-row overflow-hidden">
+
+  <!-- LEFT SIDEBAR: Multi-Project Workspace & 3-Tab Configurator -->
+  <aside id="sidebar" class="w-full md:w-[440px] lg:w-[470px] h-[54vh] md:h-full bg-slate-900 border-b md:border-b-0 md:border-r border-slate-800 flex flex-col z-20 shrink-0 shadow-2xl">
+    
+    <!-- App Brand Header with Octopus Emblem -->
+    <div class="px-4 py-2.5 bg-slate-950 border-b border-slate-800 flex items-center justify-between gap-2">
+      <div class="flex items-center gap-2.5 min-w-0">
+        <!-- Custom Stylized Octopus Engineering Icon -->
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500/30 via-cyan-500/20 to-amber-500/20 border border-cyan-400/40 flex items-center justify-center text-cyan-300 shrink-0 shadow-inner">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3a6 6 0 0 0-6 6c0 2.5 1.5 4 2 5.5C8.5 16 7 18 5 18.5" />
+            <path d="M12 3a6 6 0 0 1 6 6c0 2.5-1.5 4-2 5.5-.5 1.5 1 3.5 3 4" />
+            <path d="M9.5 13.5C9.5 16.5 8.5 19.5 7 21" />
+            <path d="M14.5 13.5c0 3 1 6 2.5 7.5" />
+            <path d="M12 14v7" />
+            <circle cx="10" cy="9" r="0.8" fill="currentColor" />
+            <circle cx="14" cy="9" r="0.8" fill="currentColor" />
+          </svg>
+        </div>
+        <div class="min-w-0">
+          <div class="flex items-center gap-1.5">
+            <h1 class="text-sm font-extrabold tracking-tight text-white truncate">OctoPack 3D</h1>
+            <span class="px-1.5 py-0.2 rounded text-[9px] font-mono font-semibold bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">PRO</span>
+          </div>
+          <p class="text-[11px] text-slate-400 truncate">Octopus Cargo &amp; Multi-Project Planner</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-1.5 shrink-0">
+        <button type="button" onclick="undoAction()" title="Undo Last Change (Ctrl+Z)"
+          class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[11px] text-slate-300 flex items-center gap-1 transition">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+          </svg>
+          Undo
+        </button>
+      </div>
+    </div>
+
+    <!-- PROJECT / CARGO PROFILE SWITCHER BAR -->
+    <div class="px-3.5 py-2 bg-slate-900/95 border-b border-slate-800 flex items-center justify-between gap-2">
+      <div class="flex items-center gap-2 flex-1 min-w-0">
+        <span class="text-[10px] font-bold uppercase tracking-wider text-cyan-400 shrink-0">Project:</span>
+        <select id="projectSwitcher" onchange="handleProjectSelect(this.value)"
+          class="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xs font-semibold text-white focus:outline-none focus:border-cyan-500 truncate">
+          <!-- Populated dynamically -->
+        </select>
+      </div>
+      <button type="button" onclick="openNewProjectModal()" title="Create a New Project Profile"
+        class="px-2 py-1 rounded-lg bg-cyan-600/20 hover:bg-cyan-600/40 text-cyan-300 border border-cyan-500/40 text-[11px] font-semibold transition shrink-0">
+        + Project
+      </button>
+    </div>
+
+    <!-- Primary 3-Tab Navigation -->
+    <nav class="grid grid-cols-3 bg-slate-950/70 border-b border-slate-800 p-1 gap-1">
+      <button type="button" id="tabBtn-container" onclick="switchTab('container')"
+        class="tab-btn py-2 px-2 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-1.5 bg-cyan-600 text-white shadow">
+        <span>1. Container &amp; Mix</span>
+      </button>
+      <button type="button" id="tabBtn-skus" onclick="switchTab('skus')"
+        class="tab-btn py-2 px-2 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-1.5 text-slate-400 hover:text-white hover:bg-slate-800/70">
+        <span>2. Pallet SKUs</span>
+        <span id="skuCountPill" class="px-1.5 py-0.2 rounded-full text-[10px] font-mono bg-slate-800 text-slate-300">4</span>
+      </button>
+      <button type="button" id="tabBtn-loads" onclick="switchTab('loads')"
+        class="tab-btn py-2 px-2 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-1.5 text-slate-400 hover:text-white hover:bg-slate-800/70">
+        <span>3. Saved Loads</span>
+        <span id="loadCountPill" class="px-1.5 py-0.2 rounded-full text-[10px] font-mono bg-slate-800 text-slate-300">2</span>
+      </button>
+    </nav>
+
+    <!-- ===================================================================== -->
+    <!-- TAB 1: CONTAINER & LIVE MIX ANALYTICS                                 -->
+    <!-- ===================================================================== -->
+    <div id="tabPanel-container" class="tab-panel flex-1 overflow-y-auto p-4 space-y-4">
+
+      <!-- Active Load Name & Quick Save Bar -->
+      <section class="bg-slate-800/60 rounded-xl p-3 border border-slate-700/80 space-y-2">
+        <div class="flex items-center justify-between">
+          <label class="text-[11px] font-semibold uppercase tracking-wider text-emerald-400">Active Load Configuration</label>
+          <span id="activeProjectTagBadge" class="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-950/70 text-cyan-300 border border-cyan-700/50">
+            OctoBatt
+          </span>
+        </div>
+        <div class="flex gap-1.5">
+          <input id="activeLoadName" type="text" value="20ft OctoBatt Standard (9 Stacks)" placeholder="e.g. 40ft 40/60 Mixed Load"
+            class="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-medium text-white focus:outline-none focus:border-emerald-500" />
+          <button type="button" onclick="saveCurrentLoad(false)"
+            class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold transition shrink-0">
+            Save
+          </button>
+          <button type="button" onclick="saveCurrentLoad(true)" title="Save as a new copy"
+            class="px-2.5 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-medium transition shrink-0">
+            Copy
+          </button>
+        </div>
+      </section>
+
+      <!-- Container Usable Space Settings -->
+      <section class="bg-slate-800/50 rounded-xl p-3.5 border border-slate-700/70 space-y-3">
+        <div class="flex items-center justify-between">
+          <h2 class="text-xs font-semibold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
+            Usable Container Envelope
+          </h2>
+          <span id="containerVolumeBadge" class="text-xs font-mono text-slate-300 bg-slate-900 px-2 py-0.5 rounded border border-slate-700">
+            31.49 m³
+          </span>
+        </div>
+
+        <div>
+          <label class="block text-[11px] text-slate-400 mb-1">Container Preset</label>
+          <select id="containerPreset" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-cyan-500">
+            <option value="20std">20ft Standard Usable (5890 × 2350 × 2275 mm)</option>
+            <option value="40std">40ft Standard Usable (12031 × 2352 × 2275 mm)</option>
+            <option value="40hc">40ft High Cube Usable (12031 × 2352 × 2585 mm)</option>
+            <option value="custom">Custom Usable Dimensions...</option>
+          </select>
+        </div>
+
+        <div class="grid grid-cols-3 gap-2">
+          <div>
+            <label class="block text-[10px] text-slate-400 mb-1">Length (mm)</label>
+            <input id="contL" type="number" min="1000" max="20000" step="10" value="5890"
+              class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs font-mono text-white focus:outline-none focus:border-cyan-500" />
+          </div>
+          <div>
+            <label class="block text-[10px] text-slate-400 mb-1">Width (mm)</label>
+            <input id="contW" type="number" min="1000" max="5000" step="10" value="2350"
+              class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs font-mono text-white focus:outline-none focus:border-cyan-500" />
+          </div>
+          <div>
+            <label class="block text-[10px] text-slate-400 mb-1">Door Max H (mm)</label>
+            <input id="contH" type="number" min="1000" max="4000" step="5" value="2275"
+              class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs font-mono text-amber-300 focus:outline-none focus:border-cyan-500" />
+          </div>
+        </div>
+      </section>
+
+      <!-- Quick Add & Multiply Saved SKUs -->
+      <section class="bg-slate-800/50 rounded-xl p-3.5 border border-slate-700/70 space-y-2.5">
+        <div class="flex items-center justify-between">
+          <h2 class="text-xs font-semibold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+            Quick Add &amp; Multiply SKUs
+          </h2>
+          <button type="button" onclick="switchTab('skus')" class="text-[11px] text-cyan-400 hover:underline">
+            + Define SKU
+          </button>
+        </div>
+
+        <div id="quickSkuLauncherList" class="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+          <!-- Populated dynamically with active project's SKUs + multiplier controls -->
+        </div>
+      </section>
+
+      <!-- Live Product Mix Breakdown -->
+      <section class="bg-slate-800/50 rounded-xl p-3.5 border border-slate-700/70 space-y-2.5">
+        <div class="flex items-center justify-between">
+          <h2 class="text-xs font-semibold uppercase tracking-wider text-teal-400 flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-teal-400"></span>
+            Active Container Mix Breakdown
+          </h2>
+          <span id="mixTotalSummary" class="text-[11px] font-mono text-slate-400">0 stacks / 0 units</span>
+        </div>
+
+        <!-- Stacked Horizontal Ratio Bar -->
+        <div id="mixRatioBar" class="w-full h-3 bg-slate-900 rounded-full overflow-hidden flex border border-slate-700">
+          <!-- Colored segments rendered dynamically -->
+        </div>
+
+        <!-- Detailed SKU Mix Table -->
+        <div id="mixBreakdownList" class="space-y-1.5 text-xs">
+          <!-- Populated dynamically -->
+        </div>
+      </section>
+
+      <!-- Selected Stack Inspector & Floor Controls -->
+      <section class="bg-slate-800/50 rounded-xl p-3.5 border border-slate-700/70 space-y-2.5">
+        <div class="flex items-center justify-between">
+          <h2 class="text-xs font-semibold uppercase tracking-wider text-purple-400 flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-purple-400"></span>
+            Selected Stack Inspector
+          </h2>
+          <span id="selectedStackLabel" class="text-[11px] font-mono text-slate-400 truncate max-w-[180px]">None selected</span>
+        </div>
+
+        <div id="selectedCoords" class="text-[11px] font-mono text-slate-300 bg-slate-900/90 px-2.5 py-1.5 rounded-lg border border-slate-700/70 flex justify-between">
+          <span>Pos: —</span>
+          <span>Size: —</span>
+        </div>
+
+        <div class="grid grid-cols-4 gap-1.5">
+          <button type="button" onclick="rotateSelected()"
+            class="py-1.5 px-2 rounded-lg bg-slate-900 hover:bg-slate-700 border border-slate-700 text-[11px] font-medium text-slate-200 transition flex items-center justify-center gap-1"
+            title="Rotate 90° (R)">
+            Rotate
+          </button>
+          <button type="button" onclick="duplicateSelected()"
+            class="py-1.5 px-2 rounded-lg bg-slate-900 hover:bg-slate-700 border border-slate-700 text-[11px] font-medium text-slate-200 transition flex items-center justify-center gap-1"
+            title="Duplicate Stack (D)">
+            +1 Copy
+          </button>
+          <button type="button" onclick="multiplySelectedPrompt()"
+            class="py-1.5 px-2 rounded-lg bg-cyan-900/60 hover:bg-cyan-800 border border-cyan-700 text-[11px] font-medium text-cyan-200 transition flex items-center justify-center gap-1"
+            title="Multiply selected stack N times">
+            × N
+          </button>
+          <button type="button" onclick="deleteSelected()"
+            class="py-1.5 px-2 rounded-lg bg-rose-950/60 hover:bg-rose-900/70 border border-rose-800/70 text-[11px] font-medium text-rose-200 transition flex items-center justify-center gap-1"
+            title="Delete Selected (Del)">
+            Delete
+          </button>
+        </div>
+
+        <!-- Inline Multiply N Bar for Selected Stack -->
+        <div id="inlineMultiplyBar" class="hidden flex items-center justify-between gap-2 bg-slate-900 p-2 rounded-lg border border-cyan-700/60">
+          <span class="text-[11px] text-cyan-300">Add copies of selected:</span>
+          <div class="flex items-center gap-1.5">
+            <input id="inlineMultiplyQty" type="number" min="1" max="50" value="3"
+              class="w-14 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs font-mono text-white text-center" />
+            <button type="button" onclick="executeMultiplySelected()"
+              class="px-2.5 py-1 rounded bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold">
+              Place
+            </button>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between pt-1">
+          <label class="flex items-center gap-2 text-[11px] text-slate-300 cursor-pointer">
+            <input id="snapToggle" type="checkbox" checked class="rounded bg-slate-900 border-slate-700 text-cyan-500 focus:ring-0" />
+            <span>Magnetic Wall &amp; Stack Snap</span>
+          </label>
+          <div class="flex items-center gap-3">
+            <button type="button" onclick="autoFillOptimalLayout()"
+              class="text-[11px] text-cyan-400 hover:text-cyan-300 font-medium underline transition">
+              Auto-Fill Floor
+            </button>
+            <button type="button" onclick="clearAllStacks()"
+              class="text-[11px] text-slate-400 hover:text-rose-400 underline transition">
+              Clear Floor
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- TAB 2: PALLET / SKU STACK LIBRARY & BUILDER                           -->
+    <!-- ===================================================================== -->
+    <div id="tabPanel-skus" class="tab-panel hidden flex-1 overflow-y-auto p-4 space-y-4">
+
+      <!-- Pallet SKU Builder Form -->
+      <section class="bg-slate-800/60 rounded-xl p-3.5 border border-slate-700/80 space-y-3">
+        <div class="flex items-center justify-between">
+          <h2 id="skuBuilderTitle" class="text-xs font-semibold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+            Define / Edit Pallet Stack SKU
+          </h2>
+          <span id="stackHeightBadge" class="text-xs font-mono font-semibold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+            H: 2160 mm
+          </span>
+        </div>
+
+        <!-- SKU Name & Color Swatch Picker -->
+        <div class="grid grid-cols-12 gap-2">
+          <div class="col-span-8">
+            <label class="block text-[10px] text-slate-400 mb-1">SKU / Cargo Name</label>
+            <input id="skuNameInput" type="text" value="OctoBatt Module A (3+3 Stack)" placeholder="e.g. OctoBatt Module A (3+3)"
+              class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500" />
+          </div>
+          <div class="col-span-4">
+            <label class="block text-[10px] text-slate-400 mb-1">Color Tag</label>
+            <div id="colorSwatchPicker" class="flex items-center gap-1 bg-slate-900 border border-slate-700 rounded-lg p-1.5 justify-between">
+              <!-- Swatches populated dynamically -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Pallet Base Footprint -->
+        <div class="grid grid-cols-3 gap-2">
+          <div class="col-span-3">
+            <label class="block text-[10px] text-slate-400 mb-1">Pallet Footprint Preset</label>
+            <select id="palletPreset" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-amber-500">
+              <option value="1200x1000">UK / ISO Standard (1200 × 1000 mm)</option>
+              <option value="1250x1050">Oversize Industrial (1250 × 1050 mm)</option>
+              <option value="1200x800">Euro EPAL (1200 × 800 mm)</option>
+              <option value="1219x1016">US GMA 48"×40" (1219 × 1016 mm)</option>
+              <option value="custom">Custom Pallet Dimensions...</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[10px] text-slate-400 mb-1">Length (mm)</label>
+            <input id="palL" type="number" min="300" max="3000" step="10" value="1200"
+              class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs font-mono text-white focus:outline-none focus:border-amber-500" />
+          </div>
+          <div>
+            <label class="block text-[10px] text-slate-400 mb-1">Width (mm)</label>
+            <input id="palW" type="number" min="300" max="3000" step="10" value="1000"
+              class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs font-mono text-white focus:outline-none focus:border-amber-500" />
+          </div>
+          <div>
+            <label class="block text-[10px] text-slate-400 mb-1">Pallet H (mm)</label>
+            <input id="palH" type="number" min="50" max="400" step="10" value="150"
+              class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs font-mono text-amber-300 focus:outline-none focus:border-amber-500" />
+          </div>
+        </div>
+
+        <!-- Default Unit Height & Stack Templates -->
+        <div class="pt-1 border-t border-slate-700/60 space-y-2">
+          <div class="flex items-center justify-between gap-2">
+            <label class="text-[11px] text-slate-300">Default Cargo / Battery Unit Height (mm):</label>
+            <input id="defaultUnitH" type="number" min="50" max="1800" step="10" value="310"
+              class="w-24 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs font-mono text-cyan-300 text-right focus:outline-none focus:border-cyan-500" />
+          </div>
+
+          <div class="grid grid-cols-4 gap-1.5">
+            <button type="button" onclick="applyStackPreset('3+3')"
+              class="px-2 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-700 border border-slate-700 text-[11px] font-medium text-slate-200 transition text-center">
+              3 + 3 Stack
+            </button>
+            <button type="button" onclick="applyStackPreset('3+2')"
+              class="px-2 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-700 border border-slate-700 text-[11px] font-medium text-slate-200 transition text-center">
+              3 + 2 Stack
+            </button>
+            <button type="button" onclick="applyStackPreset('single')"
+              class="px-2 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-700 border border-slate-700 text-[11px] font-medium text-slate-200 transition text-center">
+              Single Pallet
+            </button>
+            <button type="button" onclick="applyStackPreset('2+2')"
+              class="px-2 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-700 border border-slate-700 text-[11px] font-medium text-slate-200 transition text-center">
+              Double Stack
+            </button>
+          </div>
+        </div>
+
+        <!-- Layer Stack Builder -->
+        <div class="space-y-1.5">
+          <div class="flex items-center justify-between">
+            <span class="text-[11px] font-medium text-slate-300">Vertical Layers (Top &rarr; Bottom)</span>
+            <div class="flex gap-1">
+              <button type="button" onclick="addTier('pallet')"
+                class="px-2 py-0.5 rounded bg-amber-600/20 hover:bg-amber-600/40 text-amber-300 border border-amber-500/40 text-[10px] font-medium transition">
+                + Pallet Base
+              </button>
+              <button type="button" onclick="addTier('unit')"
+                class="px-2 py-0.5 rounded bg-cyan-600/20 hover:bg-cyan-600/40 text-cyan-300 border border-cyan-500/40 text-[10px] font-medium transition">
+                + Cargo Unit
+              </button>
+            </div>
+          </div>
+
+          <div id="tierList" class="max-h-36 overflow-y-auto space-y-1 pr-1 bg-slate-950/60 p-2 rounded-lg border border-slate-800">
+            <!-- Dynamically populated layers -->
+          </div>
+
+          <!-- Door Clearance Warning Banner -->
+          <div id="heightWarningBanner" class="hidden px-2.5 py-1.5 rounded-lg bg-rose-500/20 border border-rose-500/50 text-rose-200 text-[11px] flex items-center gap-2">
+            <span id="heightWarningText">Exceeds container door height!</span>
+          </div>
+        </div>
+
+        <!-- Save SKU to Library Button -->
+        <div class="grid grid-cols-2 gap-2 pt-1">
+          <button type="button" onclick="saveSkuToLibrary(false)"
+            class="py-2 px-3 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-semibold text-xs shadow-lg transition flex items-center justify-center gap-1.5">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+            <span id="saveSkuBtnLabel">Save SKU to Project</span>
+          </button>
+          <button type="button" onclick="saveSkuToLibrary(true)"
+            class="py-2 px-3 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-100 font-semibold text-xs transition flex items-center justify-center gap-1.5">
+            Save as New SKU
+          </button>
+        </div>
+      </section>
+
+      <!-- Saved Pallet SKU Library List -->
+      <section class="space-y-2.5">
+        <div class="flex items-center justify-between">
+          <h3 id="projectSkuHeader" class="text-xs font-semibold uppercase tracking-wider text-slate-300">Project Pallet SKUs</h3>
+          <span class="text-[11px] text-slate-400">Add +1 or Multiply × N</span>
+        </div>
+
+        <div id="skuLibraryList" class="space-y-2.5">
+          <!-- SKU Cards injected here -->
+        </div>
+      </section>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- TAB 3: SAVED CONTAINER LOADS & JSON BACKUP                            -->
+    <!-- ===================================================================== -->
+    <div id="tabPanel-loads" class="tab-panel hidden flex-1 overflow-y-auto p-4 space-y-4">
+
+      <!-- Save Current Container State -->
+      <section class="bg-slate-800/60 rounded-xl p-3.5 border border-slate-700/80 space-y-2.5">
+        <h2 class="text-xs font-semibold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+          Save Current Container Load
+        </h2>
+        <p class="text-[11px] text-slate-400">
+          Saves container dimensions, placed stacks, orientations, and SKU mix ratios under the active project.
+        </p>
+        <div class="space-y-2">
+          <input id="saveLoadTabName" type="text" placeholder="e.g. 40ft - 40% Module A / 60% Pack B"
+            class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500" />
+          <div class="grid grid-cols-2 gap-2">
+            <button type="button" onclick="saveLoadFromTab(false)"
+              class="py-2 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold transition">
+              Update / Save Load
+            </button>
+            <button type="button" onclick="saveLoadFromTab(true)"
+              class="py-2 px-3 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-100 text-xs font-semibold transition">
+              Save As New Load
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Saved Container Configurations List -->
+      <section class="space-y-2.5">
+        <div class="flex items-center justify-between">
+          <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-300">Saved Container Configurations</h3>
+          <label class="flex items-center gap-1.5 text-[11px] text-slate-400 cursor-pointer">
+            <input id="showAllProjectsLoads" type="checkbox" onchange="renderSavedLoadsUI()" class="rounded bg-slate-900 border-slate-700 text-cyan-500" />
+            <span>All Projects</span>
+          </label>
+        </div>
+
+        <div id="savedLoadsList" class="space-y-2.5">
+          <!-- Saved Container Cards injected here -->
+        </div>
+      </section>
+
+      <!-- JSON Export / Import Backup -->
+      <section class="bg-slate-800/40 rounded-xl p-3.5 border border-slate-700/70 space-y-2.5">
+        <h3 class="text-xs font-semibold uppercase tracking-wider text-cyan-400">Multi-Project Backup &amp; Sharing (.JSON)</h3>
+        <p class="text-[11px] text-slate-400">
+          Export all projects, Pallet SKUs, and Container Loads to share with colleagues or restore later.
+        </p>
+        <div class="grid grid-cols-2 gap-2">
+          <button type="button" onclick="exportWorkspaceJSON()"
+            class="py-2 px-3 rounded-lg bg-slate-900 hover:bg-slate-700 border border-slate-700 text-xs font-medium text-cyan-300 transition flex items-center justify-center gap-1.5">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            Export JSON
+          </button>
+          <label class="py-2 px-3 rounded-lg bg-slate-900 hover:bg-slate-700 border border-slate-700 text-xs font-medium text-amber-300 transition flex items-center justify-center gap-1.5 cursor-pointer">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+            </svg>
+            Import JSON
+            <input type="file" id="importJsonInput" accept=".json" class="hidden" onchange="importWorkspaceJSON(event)" />
+          </label>
+        </div>
+        <div class="pt-1 text-right">
+          <button type="button" onclick="resetFactoryDefaults()" class="text-[11px] text-slate-500 hover:text-rose-400 underline">
+            Reset Workspace Defaults
+          </button>
+        </div>
+      </section>
+    </div>
+  </aside>
+
+  <!-- RIGHT AREA: 3D Viewport + Top Metrics & Action Toolbar -->
+  <main class="flex-1 h-[46vh] md:h-full relative bg-slate-100 flex flex-col overflow-hidden">
+
+    <!-- TOP LIVE METRICS, 3D DIMENSION TOGGLES & SAVE PNG BAR -->
+    <header class="bg-white/95 backdrop-blur-md border-b border-slate-200 px-3 py-2 z-10 shadow-sm">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <!-- Metrics Group -->
+        <div class="flex flex-wrap items-center gap-2">
+          <div class="px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-200">
+            <div class="text-[9px] uppercase tracking-wider text-slate-500 font-semibold">Stacks / Pallets</div>
+            <div class="text-xs font-mono font-bold text-slate-900">
+              <span id="statStacks">0</span> <span class="text-slate-400 font-normal">stks</span> / <span id="statPallets" class="text-amber-600">0</span> <span class="text-slate-400 font-normal">plts</span>
+            </div>
+          </div>
+
+          <div class="px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-200">
+            <div class="text-[9px] uppercase tracking-wider text-slate-500 font-semibold">Cargo Units</div>
+            <div id="statUnits" class="text-xs font-mono font-bold text-cyan-700">0 units</div>
+          </div>
+
+          <div class="px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-200">
+            <div class="text-[9px] uppercase tracking-wider text-slate-500 font-semibold">Floor / Vol %</div>
+            <div class="text-xs font-mono font-bold text-slate-900">
+              <span id="statFloorPct">0%</span> <span class="text-slate-400">/</span> <span id="statVolPct" class="text-emerald-600">0%</span>
+            </div>
+          </div>
+
+          <div class="hidden xl:block px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-200">
+            <div class="text-[9px] uppercase tracking-wider text-slate-500 font-semibold">Usable L × W × H</div>
+            <div class="text-xs font-mono font-bold text-slate-800">
+              <span id="statContDims">5890×2350×2275</span> <span class="text-[10px] font-normal text-slate-500">mm</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Viewport Annotation Toggles, Clearance Pill & Save PNG Button -->
+        <div class="flex flex-wrap items-center gap-1.5">
+          <button type="button" id="toggleDimsBtn" onclick="toggle3DDimensions()"
+            class="px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition flex items-center gap-1.5 bg-cyan-600 text-white border-cyan-700 shadow-sm"
+            title="Toggle Left/Right Lane Floor Arrows & Container Dimensions">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+            </svg>
+            <span>3D Dimensions</span>
+          </button>
+
+          <button type="button" id="toggleHeightsBtn" onclick="toggleAllStackHeights()"
+            class="px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition flex items-center gap-1.5 bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200"
+            title="Show Height Labels on Every Stack">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+            </svg>
+            <span>All Stack Heights</span>
+          </button>
+
+          <div id="statusBadge" class="px-2.5 py-1.5 rounded-full bg-emerald-100 border border-emerald-300 text-emerald-800 text-xs font-semibold flex items-center gap-1.5 shadow-sm">
+            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+            <span>Clearance OK</span>
+          </div>
+
+          <button type="button" onclick="exportLoadSheetPNG()"
+            class="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold flex items-center gap-1.5 shadow transition border border-slate-700"
+            title="Generate High-Res Engineering Load Sheet PNG">
+            <svg class="w-3.5 h-3.5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            <span>Save PNG</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- 3D CANVAS CONTAINER -->
+    <div id="canvasContainer" class="flex-1 w-full h-full relative cursor-grab active:cursor-grabbing">
+      <!-- Hover Tooltip over 3D Stacks -->
+      <div id="hoverTooltip" class="pointer-events-none hidden absolute z-20 bg-slate-900/95 text-white text-[11px] px-3 py-2 rounded-xl border border-slate-700 shadow-xl backdrop-blur-md">
+        <div id="tooltipTitle" class="font-bold text-cyan-300">OctoBatt Module A</div>
+        <div id="tooltipSub" class="font-mono text-slate-300 text-[10px]">1200×1000×2160 mm • 6 units</div>
+      </div>
+
+      <!-- Left vs. Right Lane Live Telemetry Pill (Top-Left of 3D Canvas) -->
+      <div id="laneTelemetryCard" class="pointer-events-none absolute top-3 left-3 z-10 bg-slate-900/90 backdrop-blur-md text-white px-3 py-2 rounded-xl border border-slate-700/80 shadow-lg text-[11px] font-mono space-y-1">
+        <div class="flex items-center justify-between gap-4">
+          <span class="text-cyan-400 font-semibold">Left Lane:</span>
+          <span id="hudLeftLane">4800 mm used • 1090 mm free</span>
+        </div>
+        <div class="flex items-center justify-between gap-4">
+          <span class="text-emerald-400 font-semibold">Right Lane:</span>
+          <span id="hudRightLane">5000 mm used • 890 mm free</span>
+        </div>
+        <div class="flex items-center justify-between gap-4 border-t border-slate-700/70 pt-1 text-[10px] text-slate-300">
+          <span>Max Width Used:</span>
+          <span id="hudWidthGap">2200 / 2350 mm (150 mm gap)</span>
+        </div>
+      </div>
+
+      <!-- Camera View Presets Overlay (Bottom-Left) -->
+      <div class="absolute bottom-3 left-3 z-10 flex flex-wrap gap-1.5 bg-slate-900/90 backdrop-blur-md p-1.5 rounded-xl border border-slate-700/80 shadow-lg">
+        <button type="button" onclick="setCameraView('iso')"
+          class="px-2.5 py-1 rounded-lg text-[11px] font-medium text-slate-200 hover:bg-slate-700 transition">
+          Isometric
+        </button>
+        <button type="button" onclick="setCameraView('top')"
+          class="px-2.5 py-1 rounded-lg text-[11px] font-medium text-slate-200 hover:bg-slate-700 transition">
+          Top
+        </button>
+        <button type="button" onclick="setCameraView('side')"
+          class="px-2.5 py-1 rounded-lg text-[11px] font-medium text-slate-200 hover:bg-slate-700 transition">
+          Side
+        </button>
+        <button type="button" onclick="setCameraView('door')"
+          class="px-2.5 py-1 rounded-lg text-[11px] font-medium text-slate-200 hover:bg-slate-700 transition">
+          Rear Door
+        </button>
+      </div>
+
+      <!-- Controls Helper Hint (Bottom-Right) -->
+      <div class="hidden xl:flex absolute bottom-3 right-3 z-10 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-200 text-[11px] text-slate-600 shadow-sm items-center gap-2.5">
+        <span><strong class="text-slate-900">Drag</strong> Stack</span>
+        <span>•</span>
+        <span><strong class="text-slate-900">R</strong> Rotate 90°</span>
+        <span>•</span>
+        <span><strong class="text-slate-900">D</strong> Duplicate</span>
+        <span>•</span>
+        <span><strong class="text-slate-900">Arrows</strong> Nudge (10mm)</span>
+        <span>•</span>
+        <span><strong class="text-slate-900">Ctrl+Z</strong> Undo</span>
+      </div>
+
+      <!-- Floating Toast Message Box -->
+      <div id="toastBox" class="pointer-events-none opacity-0 transition-opacity duration-300 absolute top-4 left-1/2 -translate-x-1/2 z-30 bg-slate-900 text-white text-xs font-medium px-4 py-2 rounded-full shadow-xl border border-slate-700">
+        Action completed
+      </div>
+    </div>
+  </main>
+
+  <!-- NEW PROJECT MODAL -->
+  <div id="newProjectModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="text-sm font-bold text-white flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-cyan-400"></span>
+          Create New OctoPack Project Profile
+        </h3>
+        <button type="button" onclick="closeNewProjectModal()" class="text-slate-400 hover:text-white text-lg leading-none">&times;</button>
+      </div>
+      <p class="text-xs text-slate-400">
+        Separate your Pallet SKUs and Container Loads by product family or client project (e.g., <em>OctoBatt Gen-2</em>, <em>EV Chargers</em>, <em>Industrial Inverters</em>).
+      </p>
+      <div class="space-y-3">
+        <div>
+          <label class="block text-[11px] text-slate-300 mb-1">Project Name</label>
+          <input id="newProjectNameInput" type="text" placeholder="e.g. EV Fast Chargers — 2027"
+            class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500" />
+        </div>
+        <div>
+          <label class="block text-[11px] text-slate-300 mb-1">Starting SKU Template</label>
+          <select id="newProjectTemplate" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-cyan-500">
+            <option value="blank">Clean Project (1 Starter Standard Pallet SKU)</option>
+            <option value="clone">Clone SKUs from Active Project</option>
+          </select>
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button type="button" onclick="closeNewProjectModal()"
+          class="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 font-medium">
+          Cancel
+        </button>
+        <button type="button" onclick="createNewProject()"
+          class="px-4 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-xs text-white font-semibold">
+          Create Project
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PNG LOAD SHEET PREVIEW MODAL -->
+  <div id="pngPreviewModal" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-4xl w-full p-4 shadow-2xl space-y-3 flex flex-col max-h-[92vh]">
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 class="text-sm font-bold text-white">OctoPack 3D — Engineering Load Sheet Preview</h3>
+          <p class="text-[11px] text-slate-400">Your PNG report has been downloaded automatically. You can also download or inspect it below.</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <a id="pngModalDownloadLink" download="octopack_load_sheet.png"
+            class="px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer">
+            Download PNG Again
+          </a>
+          <button type="button" onclick="closePngModal()"
+            class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold">
+            Close
+          </button>
+        </div>
+      </div>
+      <div class="flex-1 overflow-auto bg-slate-950 rounded-xl border border-slate-800 p-2 flex items-center justify-center">
+        <img id="pngPreviewImage" src="" alt="OctoPack 3D Load Sheet" class="max-w-full h-auto rounded-lg shadow-lg" />
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /**
+     * ============================================================================
+     * OCTOPACK 3D — OCTOPUS CARGO & MULTI-PROJECT LOAD PLANNER
+     * Coordinate System:
+     *   - 1 Three.js unit = 1000 mm (1 meter)
+     *   - Floor sits at Y = 0
+     *   - Container spans X in [0, container.L] (X=0 back wall, X=L rear door)
+     *   - Container spans Z in [0, container.W] (Z=0 left wall, Z=W right wall)
+     * ============================================================================
+     */
+
+    const STORAGE_KEY_WORKSPACE = 'octopack_workspace_v1';
+    const LEGACY_KEYS = [
+      { skus: 'octobatt_saved_skus_v1', loads: 'octobatt_saved_loads_v1' },
+      { skus: 'cargocad_saved_skus_v1', loads: 'cargocad_saved_loads_v1' }
+    ];
+
+    const SKU_PALETTE_COLORS = [
+      '#0284c7', // Ocean Cyan
+      '#0d9488', // Deep Teal
+      '#7c3aed', // Electric Violet
+      '#e11d48', // Crimson Rose
+      '#059669', // Emerald Green
+      '#ea580c'  // Industrial Amber-Orange
+    ];
+
+    // --- GLOBAL APPLICATION STATE ---
+    const state = {
+      activeProjectId: 'proj_octobatt',
+      projects: [],
+      container: { L: 5890, W: 2350, H: 2275 },
+      activeLoadId: null,
+      activeLoadName: '20ft OctoBatt Standard (9 Stacks)',
+      // SKU Builder State
+      editingSkuId: null,
+      builderColor: '#0284c7',
+      builderTiers: [],
+      // Multi-Project Saved Libraries
+      savedSkus: [],
+      savedLoads: [],
+      // Active 3D Stacks in Scene
+      stacks: [],
+      selectedId: null,
+      nextStackId: 1,
+      undoStack: [],
+      // 3D Annotation Toggles
+      show3DDimensions: true,
+      showAllStackHeights: false,
+      // Latest Lane Telemetry
+      laneStats: {
+        leftUsed: 0,
+        leftFree: 5890,
+        rightUsed: 0,
+        rightFree: 5890,
+        maxWidthUsed: 0,
+        widthGap: 2350
+      }
+    };
+
+    // --- THREE.JS GLOBALS ---
+    let scene, camera, renderer, controls;
+    let containerGroup, annotationsGroup, stacksGroup, floorPlaneMesh;
+    let raycaster, mouse;
+    let isDragging = false;
+    let dragPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+    let dragOffset = new THREE.Vector3();
+    let toastTimeout = null;
+
+    // --- INITIALIZATION ---
+    window.addEventListener('DOMContentLoaded', () => {
+      initThree();
+      initColorSwatches();
+      loadOrSeedWorkspace();
+      setupEventListeners();
+      animate();
+    });
+
+    function initThree() {
+      const containerEl = document.getElementById('canvasContainer');
+      const width = containerEl.clientWidth;
+      const height = containerEl.clientHeight;
+
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color('#eef2f6');
+
+      camera = new THREE.PerspectiveCamera(42, width / height, 0.1, 100);
+      camera.position.set(8.6, 5.9, 7.4);
+
+      // preserveDrawingBuffer: true is critical for one-click PNG load sheet screenshots
+      renderer = new THREE.WebGLRenderer({
+        antialias: true,
+        preserveDrawingBuffer: true,
+        powerPreference: 'high-performance'
+      });
+      renderer.setSize(width, height);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      containerEl.appendChild(renderer.domElement);
+
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.07;
+      controls.maxPolarAngle = Math.PI / 2 - 0.02;
+      controls.minDistance = 1.5;
+      controls.maxDistance = 42;
+
+      // Studio Lighting
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.72);
+      scene.add(ambientLight);
+
+      const dirLight = new THREE.DirectionalLight(0xffffff, 0.68);
+      dirLight.position.set(12, 18, 14);
+      dirLight.castShadow = true;
+      dirLight.shadow.mapSize.width = 2048;
+      dirLight.shadow.mapSize.height = 2048;
+      dirLight.shadow.camera.near = 1;
+      dirLight.shadow.camera.far = 50;
+      const d = 15;
+      dirLight.shadow.camera.left = -d;
+      dirLight.shadow.camera.right = d;
+      dirLight.shadow.camera.top = d;
+      dirLight.shadow.camera.bottom = -d;
+      scene.add(dirLight);
+
+      const fillLight = new THREE.DirectionalLight(0xe0f2fe, 0.35);
+      fillLight.position.set(-10, 6, -10);
+      scene.add(fillLight);
+
+      // Ground Grid
+      const groundGrid = new THREE.GridHelper(44, 44, 0xcbd5e1, 0xe2e8f0);
+      groundGrid.position.y = -0.005;
+      scene.add(groundGrid);
+
+      // Invisible drag plane at Y=0
+      const planeGeo = new THREE.PlaneGeometry(70, 70);
+      planeGeo.rotateX(-Math.PI / 2);
+      floorPlaneMesh = new THREE.Mesh(planeGeo, new THREE.MeshBasicMaterial({ visible: false }));
+      scene.add(floorPlaneMesh);
+
+      containerGroup = new THREE.Group();
+      annotationsGroup = new THREE.Group();
+      stacksGroup = new THREE.Group();
+      scene.add(containerGroup);
+      scene.add(annotationsGroup);
+      scene.add(stacksGroup);
+
+      raycaster = new THREE.Raycaster();
+      mouse = new THREE.Vector2();
+
+      window.addEventListener('resize', onWindowResize);
+    }
+
+    function onWindowResize() {
+      const containerEl = document.getElementById('canvasContainer');
+      if (!containerEl) return;
+      camera.aspect = containerEl.clientWidth / containerEl.clientHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(containerEl.clientWidth, containerEl.clientHeight);
+    }
+
+    // --- MULTI-PROJECT WORKSPACE SEEDING & PERSISTENCE ---
+    function loadOrSeedWorkspace() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY_WORKSPACE);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          state.projects = parsed.projects || [];
+          state.activeProjectId = parsed.activeProjectId || 'proj_octobatt';
+          state.savedSkus = parsed.savedSkus || [];
+          state.savedLoads = parsed.savedLoads || [];
+        } else {
+          // Check legacy keys from earlier versions to migrate seamlessly
+          let migrated = false;
+          for (const legacy of LEGACY_KEYS) {
+            const oldSkusRaw = localStorage.getItem(legacy.skus);
+            const oldLoadsRaw = localStorage.getItem(legacy.loads);
+            if (oldSkusRaw && oldLoadsRaw) {
+              seedDefaultWorkspace();
+              const oldSkus = JSON.parse(oldSkusRaw).map(s => ({ ...s, projectId: 'proj_octobatt' }));
+              const oldLoads = JSON.parse(oldLoadsRaw).map(l => ({ ...l, projectId: 'proj_octobatt' }));
+              state.savedSkus = [...oldSkus, ...state.savedSkus.filter(s => s.projectId !== 'proj_octobatt')];
+              state.savedLoads = [...oldLoads, ...state.savedLoads.filter(l => l.projectId !== 'proj_octobatt')];
+              persistWorkspace();
+              migrated = true;
+              break;
+            }
+          }
+          if (!migrated) {
+            seedDefaultWorkspace();
+          }
+        }
+      } catch (e) {
+        seedDefaultWorkspace();
+      }
+
+      if (!state.projects.some(p => p.id === state.activeProjectId) && state.projects.length > 0) {
+        state.activeProjectId = state.projects[0].id;
+      }
+
+      renderProjectSwitcherUI();
+      activateProjectContext(state.activeProjectId, true);
+    }
+
+    function seedDefaultWorkspace() {
+      state.projects = [
+        { id: 'proj_octobatt', name: 'OctoBatt — Battery Systems', shortTag: 'OctoBatt' },
+        { id: 'proj_solar', name: 'Solar & Inverter Systems', shortTag: 'Solar/Inv' },
+        { id: 'proj_general', name: 'General Pallet Cargo', shortTag: 'General' }
+      ];
+      state.activeProjectId = 'proj_octobatt';
+
+      // --- PROJECT 1: OCTOBATT BATTERY SYSTEMS ---
+      const batModA = {
+        id: 'sku_octobatt_mod_a',
+        projectId: 'proj_octobatt',
+        name: 'OctoBatt Module A (3+3 Stack)',
+        color: '#0284c7',
+        palL: 1200,
+        palW: 1000,
+        tiers: [
+          { type: 'pallet', height: 150 },
+          { type: 'unit', height: 310 },
+          { type: 'unit', height: 310 },
+          { type: 'unit', height: 310 },
+          { type: 'pallet', height: 150 },
+          { type: 'unit', height: 310 },
+          { type: 'unit', height: 310 },
+          { type: 'unit', height: 310 }
+        ] // H = 2160 mm, 6 units
+      };
+
+      const batPackB = {
+        id: 'sku_octobatt_pack_b',
+        projectId: 'proj_octobatt',
+        name: 'OctoBatt Pack B (3+2 Stack)',
+        color: '#0d9488',
+        palL: 1200,
+        palW: 1000,
+        tiers: [
+          { type: 'pallet', height: 150 },
+          { type: 'unit', height: 320 },
+          { type: 'unit', height: 320 },
+          { type: 'unit', height: 320 },
+          { type: 'pallet', height: 150 },
+          { type: 'unit', height: 320 },
+          { type: 'unit', height: 320 }
+        ] // H = 1900 mm, 5 units
+      };
+
+      const batHvRack = {
+        id: 'sku_octobatt_hv_rack',
+        projectId: 'proj_octobatt',
+        name: 'HV Rack Wide (2+2)',
+        color: '#7c3aed',
+        palL: 1250,
+        palW: 1050,
+        tiers: [
+          { type: 'pallet', height: 150 },
+          { type: 'unit', height: 420 },
+          { type: 'unit', height: 420 },
+          { type: 'pallet', height: 150 },
+          { type: 'unit', height: 420 },
+          { type: 'unit', height: 420 }
+        ] // H = 1980 mm, 4 units
+      };
+
+      const batCabinet = {
+        id: 'sku_octobatt_cabinet',
+        projectId: 'proj_octobatt',
+        name: 'BMS Control Cabinet (Single)',
+        color: '#ea580c',
+        palL: 1200,
+        palW: 800,
+        tiers: [
+          { type: 'pallet', height: 150 },
+          { type: 'unit', height: 1850 }
+        ] // H = 2000 mm, 1 unit
+      };
+
+      // --- PROJECT 2: SOLAR & INVERTER SYSTEMS ---
+      const invHybrid = {
+        id: 'sku_solar_inv',
+        projectId: 'proj_solar',
+        name: 'Hybrid Inverter 50kW (2+2)',
+        color: '#059669',
+        palL: 1200,
+        palW: 1000,
+        tiers: [
+          { type: 'pallet', height: 150 },
+          { type: 'unit', height: 410 },
+          { type: 'unit', height: 410 },
+          { type: 'pallet', height: 150 },
+          { type: 'unit', height: 410 },
+          { type: 'unit', height: 410 }
+        ]
+      };
+
+      const solarCombiner = {
+        id: 'sku_solar_comb',
+        projectId: 'proj_solar',
+        name: 'DC Combiner Box (3+3)',
+        color: '#0284c7',
+        palL: 1200,
+        palW: 800,
+        tiers: [
+          { type: 'pallet', height: 150 },
+          { type: 'unit', height: 290 },
+          { type: 'unit', height: 290 },
+          { type: 'unit', height: 290 },
+          { type: 'pallet', height: 150 },
+          { type: 'unit', height: 290 },
+          { type: 'unit', height: 290 },
+          { type: 'unit', height: 290 }
+        ]
+      };
+
+      // --- PROJECT 3: GENERAL PALLET CARGO ---
+      const genEuro = {
+        id: 'sku_gen_euro',
+        projectId: 'proj_general',
+        name: 'Euro EPAL Double Stack',
+        color: '#7c3aed',
+        palL: 1200,
+        palW: 800,
+        tiers: [
+          { type: 'pallet', height: 150 },
+          { type: 'unit', height: 850 },
+          { type: 'pallet', height: 150 },
+          { type: 'unit', height: 850 }
+        ]
+      };
+
+      const genIso = {
+        id: 'sku_gen_iso',
+        projectId: 'proj_general',
+        name: 'ISO Standard Crate (3+2)',
+        color: '#e11d48',
+        palL: 1200,
+        palW: 1000,
+        tiers: [
+          { type: 'pallet', height: 150 },
+          { type: 'unit', height: 320 },
+          { type: 'unit', height: 320 },
+          { type: 'unit', height: 320 },
+          { type: 'pallet', height: 150 },
+          { type: 'unit', height: 320 },
+          { type: 'unit', height: 320 }
+        ]
+      };
+
+      state.savedSkus = [
+        batModA, batPackB, batHvRack, batCabinet,
+        invHybrid, solarCombiner,
+        genEuro, genIso
+      ];
+
+      // Sample Load 1: 20ft OctoBatt Standard (Left Lane: 4×1200=4800mm; Right Lane: 5×1000=5000mm)
+      const load20Stacks = [];
+      for (let i = 0; i < 4; i++) {
+        load20Stacks.push({ skuId: batModA.id, x: i * 1200, z: 0, rotated: false });
+      }
+      for (let j = 0; j < 5; j++) {
+        load20Stacks.push({ skuId: batModA.id, x: j * 1000, z: 1150, rotated: true });
+      }
+
+      const load20OctoBatt = {
+        id: 'load_octobatt_20ft',
+        projectId: 'proj_octobatt',
+        name: '20ft OctoBatt Standard (9 Stacks)',
+        container: { L: 5890, W: 2350, H: 2275 },
+        stacks: load20Stacks
+      };
+
+      // Sample Load 2: 40ft OctoBatt 40% Module A / 60% Pack B Mix
+      const load40Stacks = [];
+      for (let i = 0; i < 4; i++) {
+        load40Stacks.push({ skuId: batModA.id, x: i * 1200, z: 0, rotated: false });
+        load40Stacks.push({ skuId: batModA.id, x: i * 1200, z: 1150, rotated: true });
+      }
+      for (let i = 0; i < 6; i++) {
+        load40Stacks.push({ skuId: batPackB.id, x: 4800 + i * 1200, z: 0, rotated: false });
+        load40Stacks.push({ skuId: batPackB.id, x: 4800 + i * 1200, z: 1150, rotated: true });
+      }
+
+      const load40OctoBatt = {
+        id: 'load_octobatt_40ft_mix',
+        projectId: 'proj_octobatt',
+        name: '40ft OctoBatt 40/60 Split (20 Stacks)',
+        container: { L: 12031, W: 2352, H: 2275 },
+        stacks: load40Stacks
+      };
+
+      // Sample Load 3: Solar 20ft Load
+      const loadSolar20 = {
+        id: 'load_solar_20ft',
+        projectId: 'proj_solar',
+        name: '20ft Inverter & Combiner Load',
+        container: { L: 5890, W: 2350, H: 2275 },
+        stacks: [
+          { skuId: invHybrid.id, x: 0, z: 0, rotated: false },
+          { skuId: invHybrid.id, x: 1200, z: 0, rotated: false },
+          { skuId: invHybrid.id, x: 2400, z: 0, rotated: false },
+          { skuId: invHybrid.id, x: 3600, z: 0, rotated: false },
+          { skuId: solarCombiner.id, x: 0, z: 1150, rotated: true },
+          { skuId: solarCombiner.id, x: 800, z: 1150, rotated: true },
+          { skuId: solarCombiner.id, x: 1600, z: 1150, rotated: true },
+          { skuId: solarCombiner.id, x: 2400, z: 1150, rotated: true },
+          { skuId: solarCombiner.id, x: 3200, z: 1150, rotated: true },
+          { skuId: solarCombiner.id, x: 4000, z: 1150, rotated: true }
+        ]
+      };
+
+      // Sample Load 4: General Cargo 20ft Load
+      const loadGen20 = {
+        id: 'load_gen_20ft',
+        projectId: 'proj_general',
+        name: '20ft Mixed Euro & ISO Load',
+        container: { L: 5890, W: 2350, H: 2275 },
+        stacks: [
+          { skuId: genIso.id, x: 0, z: 0, rotated: false },
+          { skuId: genIso.id, x: 1200, z: 0, rotated: false },
+          { skuId: genIso.id, x: 2400, z: 0, rotated: false },
+          { skuId: genIso.id, x: 3600, z: 0, rotated: false },
+          { skuId: genEuro.id, x: 0, z: 1150, rotated: true },
+          { skuId: genEuro.id, x: 800, z: 1150, rotated: true },
+          { skuId: genEuro.id, x: 1600, z: 1150, rotated: true },
+          { skuId: genEuro.id, x: 2400, z: 1150, rotated: true },
+          { skuId: genEuro.id, x: 3200, z: 1150, rotated: true },
+          { skuId: genEuro.id, x: 4000, z: 1150, rotated: true }
+        ]
+      };
+
+      state.savedLoads = [load20OctoBatt, load40OctoBatt, loadSolar20, loadGen20];
+      persistWorkspace();
+    }
+
+    function persistWorkspace() {
+      try {
+        localStorage.setItem(STORAGE_KEY_WORKSPACE, JSON.stringify({
+          activeProjectId: state.activeProjectId,
+          projects: state.projects,
+          savedSkus: state.savedSkus,
+          savedLoads: state.savedLoads
+        }));
+      } catch (e) {
+        console.warn('localStorage save failed:', e);
+      }
+      updateProjectBadges();
+    }
+
+    function getActiveProject() {
+      return state.projects.find(p => p.id === state.activeProjectId) || {
+        id: 'proj_octobatt',
+        name: 'OctoBatt — Battery Systems',
+        shortTag: 'OctoBatt'
+      };
+    }
+
+    function getProjectSkus() {
+      return state.savedSkus.filter(s => s.projectId === state.activeProjectId);
+    }
+
+    function getProjectLoads() {
+      return state.savedLoads.filter(l => l.projectId === state.activeProjectId);
+    }
+
+    function updateProjectBadges() {
+      const proj = getActiveProject();
+      const projSkus = getProjectSkus();
+      const projLoads = getProjectLoads();
+      document.getElementById('skuCountPill').textContent = projSkus.length;
+      document.getElementById('loadCountPill').textContent = projLoads.length;
+      document.getElementById('activeProjectTagBadge').textContent = proj.shortTag || proj.name.split('—')[0].trim();
+      document.getElementById('projectSkuHeader').textContent = `${proj.shortTag} Pallet SKUs`;
+    }
+
+    function renderProjectSwitcherUI() {
+      const sel = document.getElementById('projectSwitcher');
+      sel.innerHTML = '';
+      state.projects.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.id;
+        opt.textContent = p.name;
+        if (p.id === state.activeProjectId) opt.selected = true;
+        sel.appendChild(opt);
+      });
+    }
+
+    function handleProjectSelect(projectId) {
+      state.activeProjectId = projectId;
+      persistWorkspace();
+      activateProjectContext(projectId, false);
+    }
+
+    function activateProjectContext(projectId, silent = false) {
+      state.activeProjectId = projectId;
+      state.editingSkuId = null;
+      document.getElementById('saveSkuBtnLabel').textContent = 'Save SKU to Project';
+
+      updateProjectBadges();
+      renderSkuLibraryUI();
+      renderSavedLoadsUI();
+
+      const projSkus = getProjectSkus();
+      if (projSkus.length > 0) {
+        loadSkuIntoBuilder(projSkus[0].id, true);
+      } else {
+        applyStackPreset('3+3');
+      }
+
+      const projLoads = getProjectLoads();
+      if (projLoads.length > 0) {
+        loadContainerConfig(projLoads[0].id, true);
+      } else {
+        state.activeLoadId = null;
+        const proj = getActiveProject();
+        document.getElementById('activeLoadName').value = `20ft ${proj.shortTag} Load`;
+        clearAllStacks(true);
+        rebuildContainer3D();
+      }
+
+      if (!silent) {
+        showToast(`Switched to project: ${getActiveProject().name}`);
+      }
+    }
+
+    // --- NEW PROJECT MODAL ---
+    function openNewProjectModal() {
+      document.getElementById('newProjectNameInput').value = '';
+      document.getElementById('newProjectModal').classList.remove('hidden');
+      setTimeout(() => document.getElementById('newProjectNameInput').focus(), 50);
+    }
+
+    function closeNewProjectModal() {
+      document.getElementById('newProjectModal').classList.add('hidden');
+    }
+
+    function createNewProject() {
+      const rawName = document.getElementById('newProjectNameInput').value.trim();
+      if (!rawName) {
+        showToast('Please enter a project name.');
+        return;
+      }
+      const mode = document.getElementById('newProjectTemplate').value;
+      const newProjId = 'proj_' + Date.now();
+      const shortTag = rawName.split('—')[0].split('-')[0].trim().slice(0, 14);
+
+      state.projects.push({
+        id: newProjId,
+        name: rawName,
+        shortTag
+      });
+
+      if (mode === 'clone') {
+        const currentSkus = getProjectSkus();
+        currentSkus.forEach((s, idx) => {
+          state.savedSkus.push({
+            ...JSON.parse(JSON.stringify(s)),
+            id: `sku_${Date.now()}_${idx}`,
+            projectId: newProjId
+          });
+        });
+      } else {
+        state.savedSkus.push({
+          id: `sku_${Date.now()}_starter`,
+          projectId: newProjId,
+          name: `${shortTag} Standard Stack (3+2)`,
+          color: '#0284c7',
+          palL: 1200,
+          palW: 1000,
+          tiers: [
+            { type: 'pallet', height: 150 },
+            { type: 'unit', height: 320 },
+            { type: 'unit', height: 320 },
+            { type: 'unit', height: 320 },
+            { type: 'pallet', height: 150 },
+            { type: 'unit', height: 320 },
+            { type: 'unit', height: 320 }
+          ]
+        });
+      }
+
+      closeNewProjectModal();
+      renderProjectSwitcherUI();
+      persistWorkspace();
+      activateProjectContext(newProjId, false);
+    }
+
+    function resetFactoryDefaults() {
+      localStorage.removeItem(STORAGE_KEY_WORKSPACE);
+      seedDefaultWorkspace();
+      renderProjectSwitcherUI();
+      activateProjectContext('proj_octobatt', true);
+      showToast('Restored OctoPack 3D default projects & SKUs.');
+    }
+
+    // --- TAB NAVIGATION ---
+    function switchTab(tabName) {
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
+      document.getElementById(`tabPanel-${tabName}`).classList.remove('hidden');
+
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.className = 'tab-btn py-2 px-2 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-1.5 text-slate-400 hover:text-white hover:bg-slate-800/70';
+      });
+      const activeBtn = document.getElementById(`tabBtn-${tabName}`);
+      activeBtn.className = 'tab-btn py-2 px-2 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-1.5 bg-cyan-600 text-white shadow';
+
+      if (tabName === 'loads') {
+        document.getElementById('saveLoadTabName').value = document.getElementById('activeLoadName').value;
+        renderSavedLoadsUI();
+      } else if (tabName === 'skus') {
+        renderSkuLibraryUI();
+        updateStackHeightBadge();
+      }
+    }
+
+    // --- UNDO HISTORY ---
+    function pushUndoSnapshot() {
+      const snapshot = {
+        container: { ...state.container },
+        stacks: state.stacks.map(s => ({
+          skuId: s.skuId,
+          skuName: s.skuName,
+          color: s.color,
+          x: s.x,
+          z: s.z,
+          rotated: s.rotated,
+          palL: s.palL,
+          palW: s.palW,
+          tiers: JSON.parse(JSON.stringify(s.tiers))
+        }))
+      };
+      state.undoStack.push(snapshot);
+      if (state.undoStack.length > 30) state.undoStack.shift();
+    }
+
+    function undoAction() {
+      if (state.undoStack.length === 0) {
+        showToast('Nothing to undo.');
+        return;
+      }
+      const prev = state.undoStack.pop();
+      state.container = { ...prev.container };
+      syncContainerInputsFromState();
+      rebuildContainer3D();
+
+      clearAllStacks(true);
+      prev.stacks.forEach(item => {
+        createStackObject(item.x, item.z, item.rotated, item.palL, item.palW, item.tiers, item.skuId, item.skuName, item.color);
+      });
+      validateAllStacks();
+      updateMetrics();
+      showToast('Undid last action.');
+    }
+
+    // --- 3D CONTAINER & ANNOTATIONS ENGINE ---
+    function rebuildContainer3D() {
+      while (containerGroup.children.length > 0) {
+        containerGroup.remove(containerGroup.children[0]);
+      }
+
+      const L = state.container.L / 1000;
+      const W = state.container.W / 1000;
+      const H = state.container.H / 1000;
+
+      // 1. Floor Deck
+      const floorGeo = new THREE.BoxGeometry(L, 0.04, W);
+      const floorMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.85, metalness: 0.1 });
+      const floorMesh = new THREE.Mesh(floorGeo, floorMat);
+      floorMesh.position.set(L / 2, -0.02, W / 2);
+      floorMesh.receiveShadow = true;
+      containerGroup.add(floorMesh);
+
+      // 2. Floor Grid (200mm minor, 1000mm major)
+      const gridMajor = [];
+      const gridMinor = [];
+      for (let x = 0; x <= state.container.L; x += 200) {
+        const xm = x / 1000;
+        const target = (x % 1000 === 0) ? gridMajor : gridMinor;
+        target.push(new THREE.Vector3(xm, 0.002, 0), new THREE.Vector3(xm, 0.002, W));
+      }
+      for (let z = 0; z <= state.container.W; z += 200) {
+        const zm = z / 1000;
+        const target = (z % 1000 === 0) ? gridMajor : gridMinor;
+        target.push(new THREE.Vector3(0, 0.002, zm), new THREE.Vector3(L, 0.002, zm));
+      }
+      if (gridMinor.length) {
+        containerGroup.add(new THREE.LineSegments(
+          new THREE.BufferGeometry().setFromPoints(gridMinor),
+          new THREE.LineBasicMaterial({ color: 0x475569 })
+        ));
+      }
+      if (gridMajor.length) {
+        containerGroup.add(new THREE.LineSegments(
+          new THREE.BufferGeometry().setFromPoints(gridMajor),
+          new THREE.LineBasicMaterial({ color: 0x94a3b8 })
+        ));
+      }
+
+      // 3. Translucent Walls & Roof
+      const boxGeo = new THREE.BoxGeometry(L, H, W);
+      const wallMat = new THREE.MeshPhysicalMaterial({
+        color: 0x06b6d4,
+        transparent: true,
+        opacity: 0.06,
+        roughness: 0.2,
+        side: THREE.DoubleSide,
+        depthWrite: false
+      });
+      const wallMesh = new THREE.Mesh(boxGeo, wallMat);
+      wallMesh.position.set(L / 2, H / 2, W / 2);
+      containerGroup.add(wallMesh);
+
+      // 4. Container Wireframe
+      const edgesLine = new THREE.LineSegments(
+        new THREE.EdgesGeometry(boxGeo),
+        new THREE.LineBasicMaterial({ color: 0x0f172a })
+      );
+      edgesLine.position.set(L / 2, H / 2, W / 2);
+      containerGroup.add(edgesLine);
+
+      // 5. Rear Door Threshold Frame at X = L
+      const doorPts = [
+        new THREE.Vector3(L, 0, 0), new THREE.Vector3(L, H, 0),
+        new THREE.Vector3(L, H, 0), new THREE.Vector3(L, H, W),
+        new THREE.Vector3(L, H, W), new THREE.Vector3(L, 0, W),
+        new THREE.Vector3(L, 0.006, 0), new THREE.Vector3(L, 0.006, W)
+      ];
+      containerGroup.add(new THREE.LineSegments(
+        new THREE.BufferGeometry().setFromPoints(doorPts),
+        new THREE.LineBasicMaterial({ color: 0xf59e0b })
+      ));
+
+      controls.target.set(L / 2, H * 0.35, W / 2);
+      controls.update();
+
+      const volM3 = (state.container.L * state.container.W * state.container.H) / 1e9;
+      document.getElementById('containerVolumeBadge').textContent = `${volM3.toFixed(2)} m³`;
+      document.getElementById('statContDims').textContent = `${state.container.L}×${state.container.W}×${state.container.H}`;
+
+      validateAllStacks();
+      updateMetrics();
+    }
+
+    /**
+     * Rebuilds 3D Dimension Lines, Left/Right Lane Occupied vs Free Floor Arrows,
+     * Center Width Gap Indicator, and Stack Height Labels.
+     */
+    function rebuild3DAnnotations() {
+      while (annotationsGroup.children.length > 0) {
+        annotationsGroup.remove(annotationsGroup.children[0]);
+      }
+
+      const L_mm = state.container.L;
+      const W_mm = state.container.W;
+      const H_mm = state.container.H;
+      const L = L_mm / 1000;
+      const W = W_mm / 1000;
+      const H = H_mm / 1000;
+
+      // Compute Left Lane (Z < W/2) and Right Lane (Z >= W/2) occupied stack extents
+      let leftMaxX = 0;
+      let rightMaxX = 0;
+      let maxUsedWidthZ = 0;
+
+      // Also track depth spread across Z
+      let minZInside = W_mm;
+      let maxZInside = 0;
+      let anyInside = false;
+
+      state.stacks.forEach(s => {
+        const dims = getStackDims(s);
+        const endX = Math.min(L_mm, Math.max(0, s.x + dims.lenX));
+        const midZ = s.z + dims.widZ / 2;
+
+        if (s.x < L_mm && s.x + dims.lenX > 0) {
+          anyInside = true;
+          if (midZ < W_mm / 2) {
+            leftMaxX = Math.max(leftMaxX, endX);
+          } else {
+            rightMaxX = Math.max(rightMaxX, endX);
+          }
+          minZInside = Math.min(minZInside, Math.max(0, s.z));
+          maxZInside = Math.max(maxZInside, Math.min(W_mm, s.z + dims.widZ));
+        }
+      });
+
+      // Compute occupied width at the densest X cross-section
+      for (let sampleX = 50; sampleX < L_mm; sampleX += 100) {
+        let sliceW = 0;
+        state.stacks.forEach(s => {
+          const dims = getStackDims(s);
+          if (sampleX >= s.x && sampleX <= s.x + dims.lenX) {
+            sliceW += dims.widZ;
+          }
+        });
+        if (sliceW > maxUsedWidthZ) maxUsedWidthZ = sliceW;
+      }
+
+      const leftFree = Math.max(0, L_mm - leftMaxX);
+      const rightFree = Math.max(0, L_mm - rightMaxX);
+      const widthGap = Math.max(0, W_mm - maxUsedWidthZ);
+
+      state.laneStats = {
+        leftUsed: Math.round(leftMaxX),
+        leftFree: Math.round(leftFree),
+        rightUsed: Math.round(rightMaxX),
+        rightFree: Math.round(rightFree),
+        maxWidthUsed: Math.round(maxUsedWidthZ),
+        widthGap: Math.round(widthGap)
+      };
+
+      // Update Live HUD Card
+      document.getElementById('hudLeftLane').textContent = `${state.laneStats.leftUsed} mm used • ${state.laneStats.leftFree} mm free`;
+      document.getElementById('hudRightLane').textContent = `${state.laneStats.rightUsed} mm used • ${state.laneStats.rightFree} mm free`;
+      document.getElementById('hudWidthGap').textContent = `${state.laneStats.maxWidthUsed} / ${W_mm} mm (${state.laneStats.widthGap} mm gap)`;
+
+      if (state.show3DDimensions) {
+        // A. Container Outer Dimension Lines & Labels
+        drawDoubleArrow3D(new THREE.Vector3(0, 0.02, -0.32), new THREE.Vector3(L, 0.02, -0.32), 0x0f172a, 0.08);
+        addBillboardSprite(`${L_mm} mm (Usable Length)`, L / 2, 0.14, -0.32, '#0f172a', '#ffffff', 1.9, 0.34);
+
+        drawDoubleArrow3D(new THREE.Vector3(-0.35, 0.02, 0), new THREE.Vector3(-0.35, 0.02, W), 0x0f172a, 0.08);
+        addBillboardSprite(`${W_mm} mm (Usable Width)`, -0.35, 0.14, W / 2, '#0f172a', '#ffffff', 1.85, 0.34);
+
+        addBillboardSprite(`Door Max H: ${H_mm} mm`, L + 0.15, H + 0.18, W / 2, '#b45309', '#fffbeb', 1.75, 0.32);
+
+        // B. LEFT LANE FLOOR ARROWS (Z = -0.14 just outside Left Wall for crystal-clear visibility)
+        const leftLaneZ = -0.13;
+        const leftUsedM = leftMaxX / 1000;
+        if (leftMaxX > 50) {
+          drawDoubleArrow3D(new THREE.Vector3(0, 0.015, leftLaneZ), new THREE.Vector3(leftUsedM, 0.015, leftLaneZ), 0x0284c7, 0.07);
+          addBillboardSprite(`Left Stacks: ${Math.round(leftMaxX)} mm`, leftUsedM / 2, 0.12, leftLaneZ, '#0369a1', '#e0f2fe', 1.55, 0.28);
+        }
+        if (leftFree > 50) {
+          drawDoubleArrow3D(new THREE.Vector3(leftUsedM, 0.015, leftLaneZ), new THREE.Vector3(L, 0.015, leftLaneZ), 0x059669, 0.07);
+          addBillboardSprite(`Left Free: ${Math.round(leftFree)} mm`, leftUsedM + (L - leftUsedM) / 2, 0.12, leftLaneZ, '#047857', '#d1fae5', 1.45, 0.28);
+        }
+
+        // C. RIGHT LANE FLOOR ARROWS (Z = W + 0.14 just outside Right Wall)
+        const rightLaneZ = W + 0.14;
+        const rightUsedM = rightMaxX / 1000;
+        if (rightMaxX > 50) {
+          drawDoubleArrow3D(new THREE.Vector3(0, 0.015, rightLaneZ), new THREE.Vector3(rightUsedM, 0.015, rightLaneZ), 0x0284c7, 0.07);
+          addBillboardSprite(`Right Stacks: ${Math.round(rightMaxX)} mm`, rightUsedM / 2, 0.12, rightLaneZ, '#0369a1', '#e0f2fe', 1.6, 0.28);
+        }
+        if (rightFree > 50) {
+          drawDoubleArrow3D(new THREE.Vector3(rightUsedM, 0.015, rightLaneZ), new THREE.Vector3(L, 0.015, rightLaneZ), 0x059669, 0.07);
+          addBillboardSprite(`Right Free: ${Math.round(rightFree)} mm`, rightUsedM + (L - rightUsedM) / 2, 0.12, rightLaneZ, '#047857', '#d1fae5', 1.5, 0.28);
+        }
+
+        // D. CENTER AISLE WIDTH COMPARISON BAR AT REAR DOOR THRESHOLD (X = L + 0.14)
+        if (anyInside && maxUsedWidthZ > 0) {
+          const doorBarX = L + 0.14;
+          const usedW_M = Math.min(W, maxUsedWidthZ / 1000);
+          drawDoubleArrow3D(new THREE.Vector3(doorBarX, 0.015, 0), new THREE.Vector3(doorBarX, 0.015, usedW_M), 0x7c3aed, 0.06);
+          if (widthGap > 10) {
+            drawDoubleArrow3D(new THREE.Vector3(doorBarX, 0.015, usedW_M), new THREE.Vector3(doorBarX, 0.015, W), 0xd97706, 0.06);
+          }
+          addBillboardSprite(
+            `Used Width: ${Math.round(maxUsedWidthZ)} / ${W_mm} mm (${Math.round(widthGap)} mm gap)`,
+            doorBarX + 0.15,
+            0.14,
+            W / 2,
+            '#5b21b6',
+            '#f3e8ff',
+            2.35,
+            0.30
+          );
+        }
+      }
+
+      // E. STACK HEIGHT LABELS (On all stacks if toggled ON, or on selected stack)
+      state.stacks.forEach(s => {
+        const isSelected = (s.id === state.selectedId);
+        if (!state.showAllStackHeights && !isSelected) return;
+
+        const dims = getStackDims(s);
+        const cx = (s.x + dims.lenX / 2) / 1000;
+        const cz = (s.z + dims.widZ / 2) / 1000;
+        const topY = s.totalHeight / 1000;
+        const tooTall = s.totalHeight > H_mm;
+
+        // Vertical height mast line at center-edge of stack
+        const mastPts = [
+          new THREE.Vector3(cx, 0.01, cz),
+          new THREE.Vector3(cx, topY + 0.14, cz)
+        ];
+        annotationsGroup.add(new THREE.Line(
+          new THREE.BufferGeometry().setFromPoints(mastPts),
+          new THREE.LineBasicMaterial({ color: tooTall ? 0xef4444 : (isSelected ? 0x16a34a : 0x0f172a) })
+        ));
+
+        const text = isSelected
+          ? `H: ${s.totalHeight} mm (${dims.lenX}×${dims.widZ})`
+          : `H: ${s.totalHeight} mm`;
+
+        addBillboardSprite(
+          text,
+          cx,
+          topY + 0.24,
+          cz,
+          tooTall ? '#b91c1c' : (isSelected ? '#15803d' : '#0f172a'),
+          tooTall ? '#fee2e2' : (isSelected ? '#dcfce7' : '#ffffff'),
+          isSelected ? 1.65 : 1.15,
+          0.26
+        );
+      });
+    }
+
+    function drawDoubleArrow3D(p1, p2, colorHex, headSize = 0.07) {
+      const dir = new THREE.Vector3().subVectors(p2, p1);
+      const len = dir.length();
+      if (len < 0.02) return;
+      dir.normalize();
+
+      // Main shaft
+      const lineGeo = new THREE.BufferGeometry().setFromPoints([p1, p2]);
+      annotationsGroup.add(new THREE.Line(lineGeo, new THREE.LineBasicMaterial({ color: colorHex })));
+
+      // Perpendicular vector on XZ plane for arrowheads & end ticks
+      const perp = new THREE.Vector3(-dir.z, 0, dir.x).normalize();
+      const hs = Math.min(headSize, len * 0.28);
+
+      const pts = [
+        // Arrowhead at p1
+        p1.clone(), p1.clone().addScaledVector(dir, hs).addScaledVector(perp, hs * 0.55),
+        p1.clone(), p1.clone().addScaledVector(dir, hs).addScaledVector(perp, -hs * 0.55),
+        // End tick at p1
+        p1.clone().addScaledVector(perp, hs * 0.85), p1.clone().addScaledVector(perp, -hs * 0.85),
+        // Arrowhead at p2
+        p2.clone(), p2.clone().addScaledVector(dir, -hs).addScaledVector(perp, hs * 0.55),
+        p2.clone(), p2.clone().addScaledVector(dir, -hs).addScaledVector(perp, -hs * 0.55),
+        // End tick at p2
+        p2.clone().addScaledVector(perp, hs * 0.85), p2.clone().addScaledVector(perp, -hs * 0.85)
+      ];
+      annotationsGroup.add(new THREE.LineSegments(
+        new THREE.BufferGeometry().setFromPoints(pts),
+        new THREE.LineBasicMaterial({ color: colorHex })
+      ));
+    }
+
+    function addBillboardSprite(text, x, y, z, textColor = '#0f172a', bgColor = '#ffffff', scaleX = 1.6, scaleY = 0.30) {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = 560;
+      canvas.height = 96;
+
+      ctx.fillStyle = bgColor;
+      ctx.globalAlpha = 0.94;
+      ctx.beginPath();
+      ctx.roundRect(10, 10, 540, 76, 18);
+      ctx.fill();
+      ctx.globalAlpha = 1.0;
+
+      ctx.strokeStyle = textColor;
+      ctx.lineWidth = 4;
+      ctx.stroke();
+
+      ctx.font = 'bold 26px "JetBrains Mono", monospace';
+      ctx.fillStyle = textColor;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(text, 280, 49);
+
+      const texture = new THREE.CanvasTexture(canvas);
+      const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false }));
+      sprite.position.set(x, y, z);
+      sprite.scale.set(scaleX, scaleY, 1);
+      annotationsGroup.add(sprite);
+    }
+
+    function toggle3DDimensions() {
+      state.show3DDimensions = !state.show3DDimensions;
+      const btn = document.getElementById('toggleDimsBtn');
+      if (state.show3DDimensions) {
+        btn.className = 'px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition flex items-center gap-1.5 bg-cyan-600 text-white border-cyan-700 shadow-sm';
+      } else {
+        btn.className = 'px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition flex items-center gap-1.5 bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200';
+      }
+      rebuild3DAnnotations();
+    }
+
+    function toggleAllStackHeights() {
+      state.showAllStackHeights = !state.showAllStackHeights;
+      const btn = document.getElementById('toggleHeightsBtn');
+      if (state.showAllStackHeights) {
+        btn.className = 'px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition flex items-center gap-1.5 bg-emerald-600 text-white border-emerald-700 shadow-sm';
+      } else {
+        btn.className = 'px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition flex items-center gap-1.5 bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200';
+      }
+      rebuild3DAnnotations();
+    }
+
+    // --- SKU BUILDER & LAYER MANAGEMENT ---
+    function initColorSwatches() {
+      const picker = document.getElementById('colorSwatchPicker');
+      picker.innerHTML = '';
+      SKU_PALETTE_COLORS.forEach(hex => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'w-4 h-4 rounded-full border border-white/40 transition transform hover:scale-110';
+        btn.style.backgroundColor = hex;
+        btn.dataset.color = hex;
+        btn.onclick = () => selectBuilderColor(hex);
+        picker.appendChild(btn);
+      });
+      selectBuilderColor(SKU_PALETTE_COLORS[0]);
+    }
+
+    function selectBuilderColor(hex) {
+      state.builderColor = hex;
+      document.querySelectorAll('#colorSwatchPicker button').forEach(btn => {
+        if (btn.dataset.color === hex) {
+          btn.classList.add('ring-2', 'ring-white', 'scale-110');
+        } else {
+          btn.classList.remove('ring-2', 'ring-white', 'scale-110');
+        }
+      });
+    }
+
+    function applyStackPreset(preset) {
+      const pH = parseInt(document.getElementById('palH').value, 10) || 150;
+      const uH = parseInt(document.getElementById('defaultUnitH').value, 10) || 310;
+      state.builderTiers = [];
+
+      if (preset === '3+3') {
+        state.builderTiers.push({ type: 'pallet', height: pH });
+        for (let i = 0; i < 3; i++) state.builderTiers.push({ type: 'unit', height: uH });
+        state.builderTiers.push({ type: 'pallet', height: pH });
+        for (let i = 0; i < 3; i++) state.builderTiers.push({ type: 'unit', height: uH });
+      } else if (preset === '3+2') {
+        state.builderTiers.push({ type: 'pallet', height: pH });
+        for (let i = 0; i < 3; i++) state.builderTiers.push({ type: 'unit', height: uH });
+        state.builderTiers.push({ type: 'pallet', height: pH });
+        for (let i = 0; i < 2; i++) state.builderTiers.push({ type: 'unit', height: uH });
+      } else if (preset === 'single') {
+        state.builderTiers.push({ type: 'pallet', height: pH });
+        state.builderTiers.push({ type: 'unit', height: uH * 3 });
+      } else if (preset === '2+2') {
+        state.builderTiers.push({ type: 'pallet', height: pH });
+        for (let i = 0; i < 2; i++) state.builderTiers.push({ type: 'unit', height: uH });
+        state.builderTiers.push({ type: 'pallet', height: pH });
+        for (let i = 0; i < 2; i++) state.builderTiers.push({ type: 'unit', height: uH });
+      }
+
+      renderTierListUI();
+    }
+
+    function addTier(type) {
+      const pH = parseInt(document.getElementById('palH').value, 10) || 150;
+      const uH = parseInt(document.getElementById('defaultUnitH').value, 10) || 310;
+      state.builderTiers.push({ type, height: type === 'pallet' ? pH : uH });
+      renderTierListUI();
+    }
+
+    function removeTier(index) {
+      if (state.builderTiers.length <= 1) {
+        showToast('Stack must have at least 1 layer.');
+        return;
+      }
+      state.builderTiers.splice(index, 1);
+      renderTierListUI();
+    }
+
+    function updateTierHeight(index, newH) {
+      state.builderTiers[index].height = Math.max(20, Math.min(2500, parseInt(newH, 10) || 100));
+      updateStackHeightBadge();
+    }
+
+    function renderTierListUI() {
+      const listEl = document.getElementById('tierList');
+      listEl.innerHTML = '';
+
+      for (let i = state.builderTiers.length - 1; i >= 0; i--) {
+        const tier = state.builderTiers[i];
+        const isPal = tier.type === 'pallet';
+        const row = document.createElement('div');
+        row.className = `flex items-center justify-between gap-2 px-2 py-1 rounded text-[11px] border ${
+          isPal ? 'bg-amber-950/40 border-amber-700/50 text-amber-200' : 'bg-cyan-950/40 border-cyan-700/50 text-cyan-200'
+        }`;
+        row.innerHTML = `
+          <div class="flex items-center gap-1.5">
+            <span class="w-2.5 h-2.5 rounded-sm ${isPal ? 'bg-amber-500' : 'bg-cyan-400'}"></span>
+            <span class="font-medium">${isPal ? 'Pallet Base' : 'Cargo / Battery Unit'}</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <input type="number" min="20" max="2500" step="10" value="${tier.height}"
+              onchange="updateTierHeight(${i}, this.value)"
+              class="w-16 bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-right font-mono text-[11px] text-white" />
+            <span class="text-[10px] text-slate-400">mm</span>
+            <button type="button" onclick="removeTier(${i})" class="text-slate-400 hover:text-rose-400 px-1 font-bold">&times;</button>
+          </div>
+        `;
+        listEl.appendChild(row);
+      }
+
+      updateStackHeightBadge();
+    }
+
+    function updateStackHeightBadge() {
+      const totalH = state.builderTiers.reduce((s, t) => s + t.height, 0);
+      const badge = document.getElementById('stackHeightBadge');
+      const banner = document.getElementById('heightWarningBanner');
+      const warnText = document.getElementById('heightWarningText');
+
+      badge.textContent = `H: ${totalH} mm`;
+      if (totalH > state.container.H) {
+        badge.className = 'text-xs font-mono font-semibold px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/50';
+        banner.classList.remove('hidden');
+        warnText.textContent = `Exceeds active door height (${state.container.H} mm) by ${totalH - state.container.H} mm!`;
+      } else {
+        badge.className = 'text-xs font-mono font-semibold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
+        banner.classList.add('hidden');
+      }
+    }
+
+    function saveSkuToLibrary(asNewCopy = false) {
+      const name = document.getElementById('skuNameInput').value.trim() || 'Unnamed Pallet Stack';
+      const palL = Math.max(300, parseInt(document.getElementById('palL').value, 10) || 1200);
+      const palW = Math.max(300, parseInt(document.getElementById('palW').value, 10) || 1000);
+      const tiersCopy = JSON.parse(JSON.stringify(state.builderTiers));
+
+      if (!asNewCopy && state.editingSkuId) {
+        const idx = state.savedSkus.findIndex(s => s.id === state.editingSkuId);
+        if (idx !== -1) {
+          state.savedSkus[idx] = {
+            ...state.savedSkus[idx],
+            name,
+            color: state.builderColor,
+            palL,
+            palW,
+            tiers: tiersCopy
+          };
+          showToast(`Updated SKU "${name}".`);
+        }
+        state.editingSkuId = null;
+        document.getElementById('saveSkuBtnLabel').textContent = 'Save SKU to Project';
+      } else {
+        const newSku = {
+          id: 'sku_' + Date.now(),
+          projectId: state.activeProjectId,
+          name: asNewCopy && state.editingSkuId ? `${name} (Copy)` : name,
+          color: state.builderColor,
+          palL,
+          palW,
+          tiers: tiersCopy
+        };
+        state.savedSkus.unshift(newSku);
+        showToast(`Saved "${newSku.name}" to project.`);
+      }
+
+      persistWorkspace();
+      renderSkuLibraryUI();
+      renderQuickSkuLauncher();
+    }
+
+    function loadSkuIntoBuilder(skuId, silent = false) {
+      const sku = state.savedSkus.find(s => s.id === skuId);
+      if (!sku) return;
+
+      state.editingSkuId = sku.id;
+      document.getElementById('skuNameInput').value = sku.name;
+      document.getElementById('palL').value = sku.palL;
+      document.getElementById('palW').value = sku.palW;
+      const firstPal = sku.tiers.find(t => t.type === 'pallet');
+      if (firstPal) document.getElementById('palH').value = firstPal.height;
+      const firstUnit = sku.tiers.find(t => t.type === 'unit');
+      if (firstUnit) document.getElementById('defaultUnitH').value = firstUnit.height;
+
+      selectBuilderColor(sku.color);
+      state.builderTiers = JSON.parse(JSON.stringify(sku.tiers));
+      renderTierListUI();
+      document.getElementById('saveSkuBtnLabel').textContent = 'Update Saved SKU';
+
+      if (!silent) {
+        switchTab('skus');
+        showToast(`Editing "${sku.name}".`);
+      }
+    }
+
+    function deleteSkuFromLibrary(skuId) {
+      const projSkus = getProjectSkus();
+      if (projSkus.length <= 1) {
+        showToast('Keep at least one Pallet SKU in this project.');
+        return;
+      }
+      state.savedSkus = state.savedSkus.filter(s => s.id !== skuId);
+      if (state.editingSkuId === skuId) {
+        state.editingSkuId = null;
+        document.getElementById('saveSkuBtnLabel').textContent = 'Save SKU to Project';
+      }
+      persistWorkspace();
+      renderSkuLibraryUI();
+      renderQuickSkuLauncher();
+      showToast('Removed Pallet SKU.');
+    }
+
+    function describeSkuLayers(tiers) {
+      const parts = [];
+      let count = 0;
+      let currentType = null;
+      tiers.forEach(t => {
+        if (t.type === currentType) {
+          count++;
+        } else {
+          if (currentType) {
+            parts.push(currentType === 'pallet' ? (count > 1 ? `${count}P` : 'P') : `${count}U`);
+          }
+          currentType = t.type;
+          count = 1;
+        }
+      });
+      if (currentType) {
+        parts.push(currentType === 'pallet' ? (count > 1 ? `${count}P` : 'P') : `${count}U`);
+      }
+      return parts.join('+');
+    }
+
+    function renderSkuLibraryUI() {
+      const listEl = document.getElementById('skuLibraryList');
+      listEl.innerHTML = '';
+
+      const projSkus = getProjectSkus();
+      projSkus.forEach(sku => {
+        const totalH = sku.tiers.reduce((s, t) => s + t.height, 0);
+        const unitCount = sku.tiers.filter(t => t.type === 'unit').length;
+        const palCount = sku.tiers.filter(t => t.type === 'pallet').length;
+        const formula = describeSkuLayers(sku.tiers);
+        const fitsDoor = totalH <= state.container.H;
+
+        const card = document.createElement('div');
+        card.className = 'bg-slate-800/70 rounded-xl p-3 border border-slate-700/80 space-y-2.5';
+        card.innerHTML = `
+          <div class="flex items-start justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <span class="w-3.5 h-3.5 rounded-md shrink-0 border border-white/20" style="background-color: ${sku.color}"></span>
+              <div>
+                <div class="text-xs font-bold text-white">${sku.name}</div>
+                <div class="text-[11px] font-mono text-slate-400">
+                  ${sku.palL}×${sku.palW}×${totalH} mm • <span class="text-cyan-300">${formula}</span> (${unitCount} units / ${palCount} plt)
+                </div>
+              </div>
+            </div>
+            <span class="px-1.5 py-0.5 rounded text-[10px] font-mono ${
+              fitsDoor ? 'bg-emerald-500/20 text-emerald-300' : 'bg-rose-500/20 text-rose-300'
+            }">
+              ${fitsDoor ? 'Fits H' : 'Too Tall'}
+            </span>
+          </div>
+
+          <div class="flex items-center justify-between gap-1.5 pt-1 border-t border-slate-700/60">
+            <div class="flex items-center gap-1">
+              <button type="button" onclick="addSkuBatchToContainer('${sku.id}', 1)"
+                class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-semibold transition">
+                +1
+              </button>
+              <div class="flex items-center bg-slate-900 rounded-lg border border-slate-700 overflow-hidden">
+                <span class="px-1.5 text-[10px] font-mono text-slate-400">×</span>
+                <input id="multInput_${sku.id}" type="number" min="1" max="60" value="4"
+                  class="w-10 bg-transparent text-xs font-mono text-white text-center py-1 focus:outline-none" />
+                <button type="button" onclick="addSkuBatchFromInput('${sku.id}', 'multInput_${sku.id}')"
+                  class="px-2 py-1 bg-cyan-600 hover:bg-cyan-500 text-white text-[11px] font-semibold transition">
+                  Multiply
+                </button>
+              </div>
+            </div>
+            <div class="flex items-center gap-1">
+              <button type="button" onclick="loadSkuIntoBuilder('${sku.id}')"
+                class="px-2 py-1 rounded-lg bg-slate-900 hover:bg-slate-700 text-slate-300 text-[11px] border border-slate-700">
+                Edit
+              </button>
+              <button type="button" onclick="deleteSkuFromLibrary('${sku.id}')"
+                class="px-2 py-1 rounded-lg bg-slate-900 hover:bg-rose-900/60 text-slate-400 hover:text-rose-300 text-[11px] border border-slate-700">
+                &times;
+              </button>
+            </div>
+          </div>
+        `;
+        listEl.appendChild(card);
+      });
+
+      renderQuickSkuLauncher();
+    }
+
+    function renderQuickSkuLauncher() {
+      const listEl = document.getElementById('quickSkuLauncherList');
+      if (!listEl) return;
+      listEl.innerHTML = '';
+
+      const projSkus = getProjectSkus();
+      projSkus.forEach(sku => {
+        const totalH = sku.tiers.reduce((s, t) => s + t.height, 0);
+        const unitCount = sku.tiers.filter(t => t.type === 'unit').length;
+        const row = document.createElement('div');
+        row.className = 'flex items-center justify-between gap-2 bg-slate-900/90 px-2.5 py-1.5 rounded-lg border border-slate-700/70';
+        row.innerHTML = `
+          <div class="flex items-center gap-2 min-w-0">
+            <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background-color: ${sku.color}"></span>
+            <div class="truncate">
+              <div class="text-xs font-medium text-slate-100 truncate">${sku.name}</div>
+              <div class="text-[10px] font-mono text-slate-400">${sku.palL}×${sku.palW} • ${unitCount} units • H:${totalH}</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-1 shrink-0">
+            <button type="button" onclick="addSkuBatchToContainer('${sku.id}', 1)"
+              class="px-2 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-semibold">
+              +1
+            </button>
+            <div class="flex items-center bg-slate-950 rounded border border-slate-700 overflow-hidden">
+              <input id="quickMult_${sku.id}" type="number" min="1" max="60" value="4"
+                class="w-9 bg-transparent text-[11px] font-mono text-white text-center py-0.5 focus:outline-none" />
+              <button type="button" onclick="addSkuBatchFromInput('${sku.id}', 'quickMult_${sku.id}')"
+                class="px-2 py-1 bg-cyan-600 hover:bg-cyan-500 text-white text-[10px] font-semibold">
+                × Multiply
+              </button>
+            </div>
+          </div>
+        `;
+        listEl.appendChild(row);
+      });
+    }
+
+    // --- MULTIPLIER, AUTO-FILL & SMART PACKING ---
+    function addSkuBatchFromInput(skuId, inputId) {
+      const qty = Math.max(1, Math.min(80, parseInt(document.getElementById(inputId).value, 10) || 1));
+      addSkuBatchToContainer(skuId, qty);
+    }
+
+    function addSkuBatchToContainer(skuId, qty) {
+      const sku = state.savedSkus.find(s => s.id === skuId);
+      if (!sku) return;
+
+      pushUndoSnapshot();
+
+      let placedInside = 0;
+      let stagedOutside = 0;
+      let lastCreated = null;
+
+      for (let i = 0; i < qty; i++) {
+        const slot = findBestOpenSlot(sku.palL, sku.palW);
+        if (slot) {
+          lastCreated = createStackObject(
+            slot.x, slot.z, slot.rotated,
+            sku.palL, sku.palW,
+            JSON.parse(JSON.stringify(sku.tiers)),
+            sku.id, sku.name, sku.color
+          );
+          placedInside++;
+        } else {
+          const stageIdx = stagedOutside;
+          const stageX = state.container.L + 250 + Math.floor(stageIdx / 2) * (sku.palL + 100);
+          const stageZ = (stageIdx % 2) * (sku.palW + 100);
+          lastCreated = createStackObject(
+            stageX, stageZ, false,
+            sku.palL, sku.palW,
+            JSON.parse(JSON.stringify(sku.tiers)),
+            sku.id, sku.name, sku.color
+          );
+          stagedOutside++;
+        }
+      }
+
+      if (lastCreated) selectStack(lastCreated.id);
+      validateAllStacks();
+      updateMetrics();
+
+      if (stagedOutside > 0) {
+        showToast(`Placed ${placedInside} inside; ${stagedOutside} in rear staging (floor full).`);
+      } else {
+        showToast(`Placed ${placedInside}× "${sku.name}" inside container.`);
+      }
+    }
+
+    function autoFillOptimalLayout() {
+      const projSkus = getProjectSkus();
+      const targetSku = projSkus[0] || state.savedSkus[0];
+      if (!targetSku) return;
+
+      pushUndoSnapshot();
+      clearAllStacks(true);
+
+      // Evaluate pinwheeled / mixed lane vs uniform lanes to maximize floor count
+      const L = state.container.L;
+      const W = state.container.W;
+      const pL = targetSku.palL;
+      const pW = targetSku.palW;
+
+      let bestPlan = [];
+
+      // Option 1: Left lane lengthways (pL along X), Right lane widthways (pW along X) if pL + pW <= W
+      if (pL + pW <= W) {
+        const plan = [];
+        const nLeft = Math.floor(L / pL);
+        const nRight = Math.floor(L / pW);
+        for (let i = 0; i < nLeft; i++) plan.push({ x: i * pL, z: 0, rotated: false });
+        for (let j = 0; j < nRight; j++) plan.push({ x: j * pW, z: W - pL, rotated: true });
+        if (plan.length > bestPlan.length) bestPlan = plan;
+      }
+
+      // Option 2: Both lanes lengthways if 2 * pW <= W
+      if (2 * pW <= W) {
+        const plan = [];
+        const nPerLane = Math.floor(L / pL);
+        for (let i = 0; i < nPerLane; i++) {
+          plan.push({ x: i * pL, z: 0, rotated: false });
+          plan.push({ x: i * pL, z: W - pW, rotated: false });
+        }
+        if (plan.length > bestPlan.length) bestPlan = plan;
+      }
+
+      // Option 3: Both lanes widthways if 2 * pL <= W
+      if (2 * pL <= W) {
+        const plan = [];
+        const nPerLane = Math.floor(L / pW);
+        for (let i = 0; i < nPerLane; i++) {
+          plan.push({ x: i * pW, z: 0, rotated: true });
+          plan.push({ x: i * pW, z: W - pL, rotated: true });
+        }
+        if (plan.length > bestPlan.length) bestPlan = plan;
+      }
+
+      bestPlan.forEach(item => {
+        createStackObject(
+          item.x, item.z, item.rotated,
+          pL, pW,
+          JSON.parse(JSON.stringify(targetSku.tiers)),
+          targetSku.id, targetSku.name, targetSku.color
+        );
+      });
+
+      if (state.stacks.length > 0) selectStack(state.stacks[0].id);
+      validateAllStacks();
+      updateMetrics();
+      showToast(`Auto-filled ${bestPlan.length}× "${targetSku.name}" stacks.`);
+    }
+
+    function findBestOpenSlot(palL, palW) {
+      const candidates = [];
+      const xCoords = new Set([0]);
+      const zCoords = new Set([0]);
+
+      state.stacks.forEach(s => {
+        const d = getStackDims(s);
+        if (s.x >= 0 && s.x <= state.container.L) xCoords.add(s.x);
+        if (s.x + d.lenX <= state.container.L) xCoords.add(s.x + d.lenX);
+        if (s.z >= 0 && s.z <= state.container.W) zCoords.add(s.z);
+        if (s.z + d.widZ <= state.container.W) zCoords.add(s.z + d.widZ);
+      });
+
+      for (let gx = 0; gx <= state.container.L - Math.min(palL, palW); gx += 50) xCoords.add(gx);
+      for (let gz = 0; gz <= state.container.W - Math.min(palL, palW); gz += 50) zCoords.add(gz);
+
+      const sortedX = Array.from(xCoords).sort((a, b) => a - b);
+      const sortedZ = Array.from(zCoords).sort((a, b) => a - b);
+
+      for (const x of sortedX) {
+        for (const z of sortedZ) {
+          for (const rotated of [false, true]) {
+            const lenX = rotated ? palW : palL;
+            const widZ = rotated ? palL : palW;
+            if (x + lenX <= state.container.L && z + widZ <= state.container.W) {
+              if (!checkRectCollision(x, z, lenX, widZ, null)) {
+                const score = x * 10 + z;
+                candidates.push({ x, z, rotated, score });
+              }
+            }
+          }
+        }
+      }
+
+      if (candidates.length === 0) return null;
+      candidates.sort((a, b) => a.score - b.score);
+      return candidates[0];
+    }
+
+    // --- 3D STACK MESH CREATION ---
+    function createStackObject(x, z, rotated, palL, palW, tiersCopy, skuId = 'custom', skuName = 'Custom Stack', color = '#0284c7') {
+      const id = state.nextStackId++;
+      const totalHeight = tiersCopy.reduce((sum, t) => sum + t.height, 0);
+
+      const group = new THREE.Group();
+      group.userData = { stackId: id };
+
+      const effL = rotated ? palW : palL;
+      const effW = rotated ? palL : palW;
+      const L_m = effL / 1000;
+      const W_m = effW / 1000;
+
+      let currentY = 0;
+      tiersCopy.forEach(tier => {
+        const h_m = tier.height / 1000;
+        if (tier.type === 'pallet') {
+          const palGeo = new THREE.BoxGeometry(L_m, h_m, W_m);
+          const palMat = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.75, metalness: 0.05 });
+          const palMesh = new THREE.Mesh(palGeo, palMat);
+          palMesh.position.set(L_m / 2, currentY + h_m / 2, W_m / 2);
+          palMesh.castShadow = true;
+          palMesh.receiveShadow = true;
+          palMesh.userData = { stackId: id };
+          palMesh.add(new THREE.LineSegments(
+            new THREE.EdgesGeometry(palGeo),
+            new THREE.LineBasicMaterial({ color: 0x78350f })
+          ));
+          group.add(palMesh);
+        } else {
+          const inset = 0.014;
+          const unitGeo = new THREE.BoxGeometry(Math.max(0.05, L_m - inset), Math.max(0.02, h_m - 0.004), Math.max(0.05, W_m - inset));
+          const unitMat = new THREE.MeshStandardMaterial({ color: color, roughness: 0.42, metalness: 0.08 });
+          const unitMesh = new THREE.Mesh(unitGeo, unitMat);
+          unitMesh.position.set(L_m / 2, currentY + h_m / 2, W_m / 2);
+          unitMesh.castShadow = true;
+          unitMesh.receiveShadow = true;
+          unitMesh.userData = { stackId: id };
+          unitMesh.add(new THREE.LineSegments(
+            new THREE.EdgesGeometry(unitGeo),
+            new THREE.LineBasicMaterial({ color: 0x0f172a, transparent: true, opacity: 0.45 })
+          ));
+          group.add(unitMesh);
+        }
+        currentY += h_m;
+      });
+
+      // Selection Wireframe
+      const H_m = totalHeight / 1000;
+      const bboxGeo = new THREE.BoxGeometry(L_m + 0.014, H_m + 0.014, W_m + 0.014);
+      const bboxHighlight = new THREE.LineSegments(
+        new THREE.EdgesGeometry(bboxGeo),
+        new THREE.LineBasicMaterial({ color: 0x22c55e, visible: false })
+      );
+      bboxHighlight.position.set(L_m / 2, H_m / 2, W_m / 2);
+      bboxHighlight.name = 'highlightBox';
+      group.add(bboxHighlight);
+
+      // Error Red Overlay
+      const errOverlay = new THREE.Mesh(
+        new THREE.BoxGeometry(L_m + 0.01, H_m + 0.01, W_m + 0.01),
+        new THREE.MeshBasicMaterial({ color: 0xef4444, transparent: true, opacity: 0.38, visible: false, depthWrite: false })
+      );
+      errOverlay.position.set(L_m / 2, H_m / 2, W_m / 2);
+      errOverlay.name = 'errorOverlay';
+      group.add(errOverlay);
+
+      group.position.set(x / 1000, 0, z / 1000);
+      stacksGroup.add(group);
+
+      const stackObj = {
+        id,
+        skuId,
+        skuName,
+        color,
+        x,
+        z,
+        rotated,
+        palL,
+        palW,
+        tiers: tiersCopy,
+        totalHeight,
+        meshGroup: group,
+        valid: true
+      };
+
+      state.stacks.push(stackObj);
+      return stackObj;
+    }
+
+    function getStackDims(stack) {
+      return {
+        lenX: stack.rotated ? stack.palW : stack.palL,
+        widZ: stack.rotated ? stack.palL : stack.palW
+      };
+    }
+
+    // --- SAVED CONTAINER LOADS MANAGER ---
+    function saveCurrentLoad(asNewCopy = false) {
+      const nameInput = document.getElementById('activeLoadName').value.trim() || 'Untitled Container Load';
+      saveLoadInternal(nameInput, asNewCopy);
+    }
+
+    function saveLoadFromTab(asNewCopy = false) {
+      const nameInput = document.getElementById('saveLoadTabName').value.trim() || 'Untitled Container Load';
+      document.getElementById('activeLoadName').value = nameInput;
+      saveLoadInternal(nameInput, asNewCopy);
+    }
+
+    function saveLoadInternal(name, asNewCopy) {
+      const serializedStacks = state.stacks.map(s => ({
+        skuId: s.skuId,
+        skuName: s.skuName,
+        color: s.color,
+        x: s.x,
+        z: s.z,
+        rotated: s.rotated,
+        palL: s.palL,
+        palW: s.palW,
+        tiers: JSON.parse(JSON.stringify(s.tiers))
+      }));
+
+      if (!asNewCopy && state.activeLoadId) {
+        const idx = state.savedLoads.findIndex(l => l.id === state.activeLoadId);
+        if (idx !== -1) {
+          state.savedLoads[idx] = {
+            ...state.savedLoads[idx],
+            projectId: state.activeProjectId,
+            name,
+            container: { ...state.container },
+            stacks: serializedStacks,
+            updatedAt: new Date().toLocaleDateString()
+          };
+          persistWorkspace();
+          renderSavedLoadsUI();
+          showToast(`Updated load "${name}".`);
+          return;
+        }
+      }
+
+      const newLoad = {
+        id: 'load_' + Date.now(),
+        projectId: state.activeProjectId,
+        name: asNewCopy && state.activeLoadId ? `${name} (Copy)` : name,
+        container: { ...state.container },
+        stacks: serializedStacks,
+        updatedAt: new Date().toLocaleDateString()
+      };
+      state.savedLoads.unshift(newLoad);
+      state.activeLoadId = newLoad.id;
+      document.getElementById('activeLoadName').value = newLoad.name;
+      document.getElementById('saveLoadTabName').value = newLoad.name;
+
+      persistWorkspace();
+      renderSavedLoadsUI();
+      showToast(`Saved container load "${newLoad.name}".`);
+    }
+
+    function loadContainerConfig(loadId, silent = false) {
+      const cfg = state.savedLoads.find(l => l.id === loadId);
+      if (!cfg) return;
+
+      if (cfg.projectId && cfg.projectId !== state.activeProjectId) {
+        state.activeProjectId = cfg.projectId;
+        renderProjectSwitcherUI();
+        updateProjectBadges();
+        renderSkuLibraryUI();
+      }
+
+      state.activeLoadId = cfg.id;
+      state.activeLoadName = cfg.name;
+      document.getElementById('activeLoadName').value = cfg.name;
+      document.getElementById('saveLoadTabName').value = cfg.name;
+
+      state.container = { ...cfg.container };
+      syncContainerInputsFromState();
+      rebuildContainer3D();
+
+      clearAllStacks(true);
+      cfg.stacks.forEach(item => {
+        const libSku = state.savedSkus.find(s => s.id === item.skuId);
+        const skuName = libSku ? libSku.name : (item.skuName || 'Pallet Stack');
+        const color = libSku ? libSku.color : (item.color || '#0284c7');
+        const palL = item.palL || (libSku ? libSku.palL : 1200);
+        const palW = item.palW || (libSku ? libSku.palW : 1000);
+        const tiers = item.tiers || (libSku ? libSku.tiers : [{ type: 'pallet', height: 150 }]);
+
+        createStackObject(item.x, item.z, item.rotated, palL, palW, JSON.parse(JSON.stringify(tiers)), item.skuId, skuName, color);
+      });
+
+      if (state.stacks.length > 0) selectStack(state.stacks[0].id);
+      validateAllStacks();
+      updateMetrics();
+      renderSavedLoadsUI();
+
+      if (!silent) {
+        switchTab('container');
+        showToast(`Loaded "${cfg.name}".`);
+      }
+    }
+
+    function deleteSavedLoad(loadId) {
+      state.savedLoads = state.savedLoads.filter(l => l.id !== loadId);
+      if (state.activeLoadId === loadId) state.activeLoadId = null;
+      persistWorkspace();
+      renderSavedLoadsUI();
+      showToast('Deleted saved container configuration.');
+    }
+
+    function computeLoadSummary(cfg) {
+      const totalStacks = cfg.stacks.length;
+      let totalUnits = 0;
+      let usedFloor = 0;
+      let usedVol = 0;
+      const bySku = {};
+
+      cfg.stacks.forEach(s => {
+        const libSku = state.savedSkus.find(k => k.id === s.skuId);
+        const name = libSku ? libSku.name : (s.skuName || 'Stack');
+        const color = libSku ? libSku.color : (s.color || '#0284c7');
+        const pL = s.palL || (libSku ? libSku.palL : 1200);
+        const pW = s.palW || (libSku ? libSku.palW : 1000);
+        const tiers = s.tiers || (libSku ? libSku.tiers : []);
+        const devs = tiers.filter(t => t.type === 'unit').length;
+        const h = tiers.reduce((sum, t) => sum + t.height, 0);
+
+        totalUnits += devs;
+        usedFloor += pL * pW;
+        usedVol += pL * pW * h;
+
+        if (!bySku[name]) bySku[name] = { count: 0, units: 0, color };
+        bySku[name].count++;
+        bySku[name].units += devs;
+      });
+
+      const floorArea = cfg.container.L * cfg.container.W;
+      const volArea = floorArea * cfg.container.H;
+      const floorPct = floorArea > 0 ? Math.min(100, (usedFloor / floorArea) * 100).toFixed(0) : 0;
+      const volPct = volArea > 0 ? Math.min(100, (usedVol / volArea) * 100).toFixed(0) : 0;
+
+      const mixText = Object.entries(bySku).map(([name, info]) => {
+        const pct = totalStacks > 0 ? Math.round((info.count / totalStacks) * 100) : 0;
+        return `${pct}% ${name.split('(')[0].trim()}`;
+      }).join(' / ') || 'Empty Load';
+
+      return { totalStacks, totalUnits, floorPct, volPct, mixText };
+    }
+
+    function renderSavedLoadsUI() {
+      const listEl = document.getElementById('savedLoadsList');
+      if (!listEl) return;
+      listEl.innerHTML = '';
+
+      const showAll = document.getElementById('showAllProjectsLoads')?.checked;
+      const loadsToDisplay = showAll ? state.savedLoads : getProjectLoads();
+
+      if (loadsToDisplay.length === 0) {
+        listEl.innerHTML = `<div class="text-xs text-slate-500 italic p-3 bg-slate-800/40 rounded-xl border border-slate-800">No saved loads in this project yet. Click "Save Load" above to store your current 3D configuration.</div>`;
+        return;
+      }
+
+      loadsToDisplay.forEach(cfg => {
+        const summary = computeLoadSummary(cfg);
+        const isActive = cfg.id === state.activeLoadId;
+        const proj = state.projects.find(p => p.id === cfg.projectId);
+        const projTag = proj ? proj.shortTag : 'Project';
+
+        const card = document.createElement('div');
+        card.className = `rounded-xl p-3 border space-y-2 transition ${
+          isActive ? 'bg-emerald-950/30 border-emerald-500/60' : 'bg-slate-800/70 border-slate-700/80'
+        }`;
+
+        card.innerHTML = `
+          <div class="flex items-start justify-between gap-2">
+            <div>
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="px-1.5 py-0.2 rounded text-[9px] font-mono bg-cyan-950 text-cyan-300 border border-cyan-700/50">${projTag}</span>
+                <span class="text-xs font-bold text-white">${cfg.name}</span>
+                ${isActive ? '<span class="px-1.5 py-0.2 rounded text-[9px] font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">ACTIVE</span>' : ''}
+              </div>
+              <div class="text-[11px] font-mono text-slate-400 mt-0.5">
+                Container: ${cfg.container.L}×${cfg.container.W}×${cfg.container.H} mm
+              </div>
+            </div>
+            <button type="button" onclick="deleteSavedLoad('${cfg.id}')"
+              class="text-slate-400 hover:text-rose-400 px-1.5 py-0.5 rounded text-xs" title="Delete Load">
+              &times;
+            </button>
+          </div>
+
+          <div class="flex flex-wrap gap-1.5 text-[10px] font-mono">
+            <span class="px-2 py-0.5 rounded bg-slate-900 text-amber-300 border border-slate-700">
+              ${summary.totalStacks} stacks
+            </span>
+            <span class="px-2 py-0.5 rounded bg-slate-900 text-cyan-300 border border-slate-700">
+              ${summary.totalUnits} units
+            </span>
+            <span class="px-2 py-0.5 rounded bg-slate-900 text-emerald-300 border border-slate-700">
+              Floor ${summary.floorPct}% • Vol ${summary.volPct}%
+            </span>
+          </div>
+
+          <div class="flex items-center justify-between pt-1 border-t border-slate-700/60">
+            <span class="text-[11px] text-slate-300 truncate max-w-[230px]">${summary.mixText}</span>
+            <button type="button" onclick="loadContainerConfig('${cfg.id}')"
+              class="px-3 py-1 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-[11px] font-semibold transition">
+              Load into 3D
+            </button>
+          </div>
+        `;
+        listEl.appendChild(card);
+      });
+    }
+
+    // --- JSON EXPORT / IMPORT ---
+    function exportWorkspaceJSON() {
+      const payload = {
+        app: 'OctoPack 3D — Octopus Cargo Planner',
+        exportedAt: new Date().toISOString(),
+        activeProjectId: state.activeProjectId,
+        projects: state.projects,
+        savedSkus: state.savedSkus,
+        savedLoads: state.savedLoads
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `octopack_cargo_configs_${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('Exported OctoPack 3D workspace JSON.');
+    }
+
+    function importWorkspaceJSON(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = JSON.parse(e.target.result);
+          if (Array.isArray(data.savedSkus) && Array.isArray(data.savedLoads)) {
+            if (Array.isArray(data.projects) && data.projects.length > 0) {
+              state.projects = data.projects;
+              state.activeProjectId = data.activeProjectId || data.projects[0].id;
+            }
+            state.savedSkus = data.savedSkus.map(s => ({ ...s, projectId: s.projectId || state.activeProjectId }));
+            state.savedLoads = data.savedLoads.map(l => ({ ...l, projectId: l.projectId || state.activeProjectId }));
+            persistWorkspace();
+            renderProjectSwitcherUI();
+            activateProjectContext(state.activeProjectId, true);
+            showToast('Imported OctoPack 3D configurations!');
+          } else {
+            showToast('Invalid JSON format.');
+          }
+        } catch (err) {
+          showToast('Error reading JSON file.');
+        }
+      };
+      reader.readAsText(file);
+      event.target.value = '';
+    }
+
+    // --- ONE-CLICK PNG ENGINEERING LOAD SHEET GENERATOR ---
+    function exportLoadSheetPNG() {
+      // Force fresh render of current 3D scene
+      renderer.render(scene, camera);
+      const viewportDataUrl = renderer.domElement.toDataURL('image/png');
+
+      const img = new Image();
+      img.onload = () => {
+        const sheetW = 1600;
+        const sheetH = 1120;
+        const canvas = document.createElement('canvas');
+        canvas.width = sheetW;
+        canvas.height = sheetH;
+        const ctx = canvas.getContext('2d');
+
+        // 1. Background
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(0, 0, sheetW, sheetH);
+
+        // 2. Top Branding Header Bar
+        ctx.fillStyle = '#020617';
+        ctx.fillRect(0, 0, sheetW, 92);
+        ctx.strokeStyle = '#1e293b';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, 92);
+        ctx.lineTo(sheetW, 92);
+        ctx.stroke();
+
+        // Octopus Badge Accent
+        ctx.fillStyle = '#0891b2';
+        ctx.beginPath();
+        ctx.roundRect(32, 20, 52, 52, 12);
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 24px "Inter", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('OP', 58, 54);
+
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 26px "Inter", sans-serif';
+        ctx.fillText('OCTOPACK 3D // OCTOPUS CARGO PLANNER', 102, 46);
+
+        const proj = getActiveProject();
+        const loadTitle = document.getElementById('activeLoadName').value.trim() || 'Active Container Load';
+        ctx.fillStyle = '#38bdf8';
+        ctx.font = '600 16px "JetBrains Mono", monospace';
+        ctx.fillText(`PROJECT: ${proj.name.toUpperCase()}   |   LOAD: ${loadTitle}`, 102, 73);
+
+        ctx.textAlign = 'right';
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '15px "JetBrains Mono", monospace';
+        ctx.fillText(`Generated: ${new Date().toLocaleString()}`, sheetW - 36, 46);
+        ctx.fillStyle = '#34d399';
+        ctx.fillText(`CONTAINER: ${state.container.L} × ${state.container.W} × ${state.container.H} mm`, sheetW - 36, 73);
+
+        // 3. Left/Main 3D Viewport Frame (1040 × 680)
+        const vpX = 32;
+        const vpY = 114;
+        const vpW = 1040;
+        const vpH = 680;
+
+        ctx.fillStyle = '#eef2f6';
+        ctx.beginPath();
+        ctx.roundRect(vpX, vpY, vpW, vpH, 16);
+        ctx.fill();
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.roundRect(vpX, vpY, vpW, vpH, 16);
+        ctx.clip();
+
+        // Aspect-fit 3D render into viewport card
+        const scale = Math.min(vpW / img.width, vpH / img.height);
+        const drawW = img.width * scale;
+        const drawH = img.height * scale;
+        ctx.drawImage(img, vpX + (vpW - drawW) / 2, vpY + (vpH - drawH) / 2, drawW, drawH);
+        ctx.restore();
+
+        ctx.strokeStyle = '#334155';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.roundRect(vpX, vpY, vpW, vpH, 16);
+        ctx.stroke();
+
+        // 4. Right Column: Engineering Telemetry & Lane Clearances (476 × 680)
+        const rx = 1092;
+        const rw = 476;
+
+        // Card A: Summary KPIs
+        ctx.fillStyle = '#1e293b';
+        ctx.beginPath();
+        ctx.roundRect(rx, vpY, rw, 310, 16);
+        ctx.fill();
+
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#38bdf8';
+        ctx.font = 'bold 16px "Inter", sans-serif';
+        ctx.fillText('LOAD UTILIZATION & CAPACITY', rx + 22, vpY + 34);
+
+        let totalPallets = 0;
+        let totalUnits = 0;
+        let usedFloor = 0;
+        let usedVol = 0;
+        state.stacks.forEach(s => {
+          const d = getStackDims(s);
+          totalPallets += s.tiers.filter(t => t.type === 'pallet').length;
+          totalUnits += s.tiers.filter(t => t.type === 'unit').length;
+          usedFloor += d.lenX * d.widZ;
+          usedVol += d.lenX * d.widZ * s.totalHeight;
+        });
+        const contFloor = state.container.L * state.container.W;
+        const contVol = contFloor * state.container.H;
+        const floorPct = contFloor > 0 ? Math.min(100, (usedFloor / contFloor) * 100).toFixed(1) : '0.0';
+        const volPct = contVol > 0 ? Math.min(100, (usedVol / contVol) * 100).toFixed(1) : '0.0';
+
+        const kpis = [
+          ['Total Floor Stacks', `${state.stacks.length} stacks`],
+          ['Total Pallet Bases', `${totalPallets} pallets`],
+          ['Total Cargo Units', `${totalUnits} units`],
+          ['Floor Area Utilization', `${floorPct}% (${(usedFloor / 1e6).toFixed(2)} m²)`],
+          ['Cubic Volume Utilization', `${volPct}% (${(usedVol / 1e9).toFixed(2)} m³)`],
+          ['Door Max Height Limit', `${state.container.H} mm`]
+        ];
+
+        kpis.forEach(([label, val], idx) => {
+          const rowY = vpY + 72 + idx * 38;
+          ctx.fillStyle = '#94a3b8';
+          ctx.font = '15px "Inter", sans-serif';
+          ctx.textAlign = 'left';
+          ctx.fillText(label, rx + 22, rowY);
+
+          ctx.fillStyle = '#f8fafc';
+          ctx.font = 'bold 15px "JetBrains Mono", monospace';
+          ctx.textAlign = 'right';
+          ctx.fillText(val, rx + rw - 22, rowY);
+        });
+
+        // Card B: Left vs Right Lane Clearance Measurements
+        const laneCardY = vpY + 330;
+        ctx.fillStyle = '#1e293b';
+        ctx.beginPath();
+        ctx.roundRect(rx, laneCardY, rw, 350, 16);
+        ctx.fill();
+
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#34d399';
+        ctx.font = 'bold 16px "Inter", sans-serif';
+        ctx.fillText('LANE LENGTH & WIDTH CLEARANCES', rx + 22, laneCardY + 34);
+
+        const laneRows = [
+          ['Left Lane Stacks Length', `${state.laneStats.leftUsed} mm`, '#38bdf8'],
+          ['Left Lane Remaining Free', `${state.laneStats.leftFree} mm`, '#34d399'],
+          ['Right Lane Stacks Length', `${state.laneStats.rightUsed} mm`, '#38bdf8'],
+          ['Right Lane Remaining Free', `${state.laneStats.rightFree} mm`, '#34d399'],
+          ['Max Combined Width Used', `${state.laneStats.maxWidthUsed} / ${state.container.W} mm`, '#c084fc'],
+          ['Lateral Width Gap Left', `${state.laneStats.widthGap} mm`, '#fbbf24']
+        ];
+
+        laneRows.forEach(([label, val, color], idx) => {
+          const rowY = laneCardY + 78 + idx * 44;
+          ctx.fillStyle = '#cbd5e1';
+          ctx.font = '15px "Inter", sans-serif';
+          ctx.textAlign = 'left';
+          ctx.fillText(label, rx + 22, rowY);
+
+          ctx.fillStyle = color;
+          ctx.font = 'bold 16px "JetBrains Mono", monospace';
+          ctx.textAlign = 'right';
+          ctx.fillText(val, rx + rw - 22, rowY);
+        });
+
+        // 5. Bottom Section: Color-Coded SKU Breakdown Table (1536 × 274)
+        const botY = 814;
+        const botW = sheetW - 64;
+        const botH = 274;
+
+        ctx.fillStyle = '#1e293b';
+        ctx.beginPath();
+        ctx.roundRect(32, botY, botW, botH, 16);
+        ctx.fill();
+
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#fbbf24';
+        ctx.font = 'bold 16px "Inter", sans-serif';
+        ctx.fillText('SKU & CARGO MIX BREAKDOWN', 54, botY + 34);
+
+        // Table Header
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(54, botY + 48, botW - 44, 34);
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = 'bold 13px "JetBrains Mono", monospace';
+        ctx.fillText('SKU / CARGO CONFIGURATION', 72, botY + 70);
+        ctx.fillText('FOOTPRINT & HEIGHT', 560, botY + 70);
+        ctx.fillText('STACKS', 900, botY + 70);
+        ctx.fillText('TOTAL UNITS', 1070, botY + 70);
+        ctx.fillText('MIX SHARE', 1280, botY + 70);
+
+        const mixMap = {};
+        state.stacks.forEach(s => {
+          const dims = getStackDims(s);
+          const u = s.tiers.filter(t => t.type === 'unit').length;
+          if (!mixMap[s.skuName]) {
+            mixMap[s.skuName] = {
+              name: s.skuName,
+              color: s.color,
+              footprint: `${s.palL}×${s.palW}×${s.totalHeight} mm`,
+              stacks: 0,
+              units: 0
+            };
+          }
+          mixMap[s.skuName].stacks++;
+          mixMap[s.skuName].units += u;
+        });
+
+        const mixEntries = Object.values(mixMap);
+        mixEntries.slice(0, 4).forEach((entry, idx) => {
+          const ry = botY + 108 + idx * 38;
+          const sharePct = state.stacks.length > 0 ? ((entry.stacks / state.stacks.length) * 100).toFixed(1) : '0.0';
+
+          // Color Swatch
+          ctx.fillStyle = entry.color;
+          ctx.beginPath();
+          ctx.roundRect(72, ry - 13, 16, 16, 4);
+          ctx.fill();
+
+          ctx.fillStyle = '#f8fafc';
+          ctx.font = '600 15px "Inter", sans-serif';
+          ctx.fillText(entry.name, 100, ry);
+
+          ctx.fillStyle = '#cbd5e1';
+          ctx.font = '14px "JetBrains Mono", monospace';
+          ctx.fillText(entry.footprint, 560, ry);
+          ctx.fillText(`${entry.stacks} stacks`, 900, ry);
+          ctx.fillText(`${entry.units} units`, 1070, ry);
+
+          ctx.fillStyle = '#38bdf8';
+          ctx.font = 'bold 15px "JetBrains Mono", monospace';
+          ctx.fillText(`${sharePct}%`, 1280, ry);
+        });
+
+        const finalPngUrl = canvas.toDataURL('image/png');
+        const filename = `octopack_load_sheet_${new Date().toISOString().slice(0, 10)}.png`;
+
+        // Trigger download
+        const dlLink = document.createElement('a');
+        dlLink.href = finalPngUrl;
+        dlLink.download = filename;
+        dlLink.click();
+
+        // Populate Preview Modal
+        document.getElementById('pngPreviewImage').src = finalPngUrl;
+        const modalDl = document.getElementById('pngModalDownloadLink');
+        modalDl.href = finalPngUrl;
+        modalDl.download = filename;
+        document.getElementById('pngPreviewModal').classList.remove('hidden');
+
+        showToast('Generated & downloaded OctoPack 3D Load Sheet PNG!');
+      };
+      img.src = viewportDataUrl;
+    }
+
+    function closePngModal() {
+      document.getElementById('pngPreviewModal').classList.add('hidden');
+    }
+
+    // --- SELECTION, ROTATION, DUPLICATION, MULTIPLY SELECTED ---
+    function selectStack(id) {
+      state.selectedId = id;
+      state.stacks.forEach(s => {
+        const box = s.meshGroup.getObjectByName('highlightBox');
+        if (box) box.material.visible = (s.id === id);
+      });
+      updateSelectedUI();
+      rebuild3DAnnotations();
+    }
+
+    function getSelectedStack() {
+      return state.stacks.find(s => s.id === state.selectedId) || null;
+    }
+
+    function rotateSelected() {
+      const stack = getSelectedStack();
+      if (!stack) {
+        showToast('Select a stack first to rotate.');
+        return;
+      }
+      pushUndoSnapshot();
+      stack.rotated = !stack.rotated;
+
+      const wasSelected = (stack.id === state.selectedId);
+      stacksGroup.remove(stack.meshGroup);
+      const idx = state.stacks.indexOf(stack);
+      const tempId = state.nextStackId;
+      state.nextStackId = stack.id;
+
+      const rebuilt = createStackObject(
+        stack.x, stack.z, stack.rotated, stack.palL, stack.palW,
+        stack.tiers, stack.skuId, stack.skuName, stack.color
+      );
+      state.stacks.pop();
+      state.stacks[idx] = rebuilt;
+      state.nextStackId = tempId;
+
+      if (wasSelected) selectStack(rebuilt.id);
+      validateAllStacks();
+      updateMetrics();
+      updateSelectedUI();
+    }
+
+    function duplicateSelected() {
+      const stack = getSelectedStack();
+      if (!stack) {
+        showToast('Select a stack first to duplicate.');
+        return;
+      }
+      pushUndoSnapshot();
+      const slot = findBestOpenSlot(stack.palL, stack.palW) || {
+        x: state.container.L + 200,
+        z: 0,
+        rotated: stack.rotated
+      };
+      const dup = createStackObject(
+        slot.x, slot.z, slot.rotated, stack.palL, stack.palW,
+        JSON.parse(JSON.stringify(stack.tiers)), stack.skuId, stack.skuName, stack.color
+      );
+      selectStack(dup.id);
+      validateAllStacks();
+      updateMetrics();
+      showToast(`Duplicated "${stack.skuName}".`);
+    }
+
+    function multiplySelectedPrompt() {
+      const stack = getSelectedStack();
+      if (!stack) {
+        showToast('Select a stack first to multiply.');
+        return;
+      }
+      document.getElementById('inlineMultiplyBar').classList.toggle('hidden');
+    }
+
+    function executeMultiplySelected() {
+      const stack = getSelectedStack();
+      if (!stack) return;
+      const qty = Math.max(1, Math.min(60, parseInt(document.getElementById('inlineMultiplyQty').value, 10) || 1));
+      document.getElementById('inlineMultiplyBar').classList.add('hidden');
+      addSkuBatchToContainer(stack.skuId, qty);
+    }
+
+    function deleteSelected() {
+      const stack = getSelectedStack();
+      if (!stack) return;
+      pushUndoSnapshot();
+      stacksGroup.remove(stack.meshGroup);
+      state.stacks = state.stacks.filter(s => s.id !== stack.id);
+      state.selectedId = state.stacks.length > 0 ? state.stacks[state.stacks.length - 1].id : null;
+      if (state.selectedId) selectStack(state.selectedId);
+      validateAllStacks();
+      updateMetrics();
+      updateSelectedUI();
+    }
+
+    function clearAllStacks(silent = false) {
+      if (!silent && state.stacks.length > 0) pushUndoSnapshot();
+      state.stacks.forEach(s => stacksGroup.remove(s.meshGroup));
+      state.stacks = [];
+      state.selectedId = null;
+      validateAllStacks();
+      updateMetrics();
+      updateSelectedUI();
+      if (!silent) showToast('Cleared container floor.');
+    }
+
+    // --- COLLISION, BOUNDARY & SNAPPING ENGINE ---
+    function checkRectCollision(x, z, lenX, widZ, ignoreId) {
+      const tol = 2;
+      for (const other of state.stacks) {
+        if (other.id === ignoreId) continue;
+        const oDims = getStackDims(other);
+        const overlapX = x < other.x + oDims.lenX - tol && x + lenX > other.x + tol;
+        const overlapZ = z < other.z + oDims.widZ - tol && z + widZ > other.z + tol;
+        if (overlapX && overlapZ) return true;
+      }
+      return false;
+    }
+
+    function validateAllStacks() {
+      let allValid = true;
+      for (const s of state.stacks) {
+        const dims = getStackDims(s);
+        const outOfBounds =
+          s.x < -1 || s.z < -1 ||
+          s.x + dims.lenX > state.container.L + 1 ||
+          s.z + dims.widZ > state.container.W + 1;
+        const collides = checkRectCollision(s.x, s.z, dims.lenX, dims.widZ, s.id);
+        const tooTall = s.totalHeight > state.container.H;
+
+        s.valid = !(outOfBounds || collides || tooTall);
+        if (!s.valid) allValid = false;
+
+        const errOverlay = s.meshGroup.getObjectByName('errorOverlay');
+        const hiBox = s.meshGroup.getObjectByName('highlightBox');
+        if (errOverlay) errOverlay.material.visible = !s.valid;
+        if (hiBox) hiBox.material.color.setHex(s.valid ? 0x22c55e : 0xef4444);
+      }
+
+      const badge = document.getElementById('statusBadge');
+      if (allValid) {
+        badge.className = 'px-2.5 py-1.5 rounded-full bg-emerald-100 border border-emerald-300 text-emerald-800 text-xs font-semibold flex items-center gap-1.5 shadow-sm';
+        badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500"></span><span>Clearance OK</span>`;
+      } else {
+        badge.className = 'px-2.5 py-1.5 rounded-full bg-rose-100 border border-rose-400 text-rose-800 text-xs font-semibold flex items-center gap-1.5 shadow-sm';
+        badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-rose-600 animate-ping"></span><span>Collision / Bound Alert</span>`;
+      }
+
+      rebuild3DAnnotations();
+    }
+
+    function applyMagneticSnap(stack, rawX, rawZ) {
+      const snapEnabled = document.getElementById('snapToggle').checked;
+      let x = Math.round(rawX / 10) * 10;
+      let z = Math.round(rawZ / 10) * 10;
+      if (!snapEnabled) return { x, z };
+
+      const dims = getStackDims(stack);
+      const snapDist = 35;
+
+      if (Math.abs(x) < snapDist) x = 0;
+      if (Math.abs((x + dims.lenX) - state.container.L) < snapDist) x = state.container.L - dims.lenX;
+      if (Math.abs(z) < snapDist) z = 0;
+      if (Math.abs((z + dims.widZ) - state.container.W) < snapDist) z = state.container.W - dims.widZ;
+
+      for (const other of state.stacks) {
+        if (other.id === stack.id) continue;
+        const oDims = getStackDims(other);
+        if (Math.abs(x - (other.x + oDims.lenX)) < snapDist) x = other.x + oDims.lenX;
+        if (Math.abs((x + dims.lenX) - other.x) < snapDist) x = other.x - dims.lenX;
+        if (Math.abs(x - other.x) < snapDist) x = other.x;
+
+        if (Math.abs(z - (other.z + oDims.widZ)) < snapDist) z = other.z + oDims.widZ;
+        if (Math.abs((z + dims.widZ) - other.z) < snapDist) z = other.z - dims.widZ;
+        if (Math.abs(z - other.z) < snapDist) z = other.z;
+      }
+      return { x, z };
+    }
+
+    // --- POINTER DRAG, HOVER TOOLTIP & KEYBOARD EVENTS ---
+    function setupEventListeners() {
+      const domEl = renderer.domElement;
+      domEl.addEventListener('pointerdown', onPointerDown);
+      window.addEventListener('pointermove', onPointerMove);
+      window.addEventListener('pointerup', onPointerUp);
+
+      window.addEventListener('keydown', (e) => {
+        if (['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
+
+        if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z')) {
+          e.preventDefault();
+          undoAction();
+        } else if (e.key === 'r' || e.key === 'R') {
+          rotateSelected();
+        } else if (e.key === 'd' || e.key === 'D') {
+          duplicateSelected();
+        } else if (e.key === 'Delete' || e.key === 'Backspace') {
+          deleteSelected();
+        } else if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+          const stack = getSelectedStack();
+          if (!stack) return;
+          e.preventDefault();
+          const step = e.shiftKey ? 50 : 10;
+          if (e.key === 'ArrowRight') stack.x += step;
+          if (e.key === 'ArrowLeft') stack.x -= step;
+          if (e.key === 'ArrowDown') stack.z += step;
+          if (e.key === 'ArrowUp') stack.z -= step;
+          stack.meshGroup.position.set(stack.x / 1000, 0, stack.z / 1000);
+          validateAllStacks();
+          updateMetrics();
+          updateSelectedUI();
+        }
+      });
+
+      document.getElementById('containerPreset').addEventListener('change', (e) => {
+        const val = e.target.value;
+        if (val === '20std') setContainerInputs(5890, 2350, 2275);
+        else if (val === '40std') setContainerInputs(12031, 2352, 2275);
+        else if (val === '40hc') setContainerInputs(12031, 2352, 2585);
+      });
+
+      ['contL', 'contW', 'contH'].forEach(id => {
+        document.getElementById(id).addEventListener('change', () => {
+          document.getElementById('containerPreset').value = 'custom';
+          state.container.L = Math.max(1000, parseInt(document.getElementById('contL').value, 10) || 5890);
+          state.container.W = Math.max(1000, parseInt(document.getElementById('contW').value, 10) || 2350);
+          state.container.H = Math.max(1000, parseInt(document.getElementById('contH').value, 10) || 2275);
+          rebuildContainer3D();
+          updateStackHeightBadge();
+        });
+      });
+
+      document.getElementById('palletPreset').addEventListener('change', (e) => {
+        const val = e.target.value;
+        if (val !== 'custom') {
+          const [l, w] = val.split('x').map(Number);
+          document.getElementById('palL').value = l;
+          document.getElementById('palW').value = w;
+        }
+      });
+    }
+
+    function setContainerInputs(L, W, H) {
+      document.getElementById('contL').value = L;
+      document.getElementById('contW').value = W;
+      document.getElementById('contH').value = H;
+      state.container = { L, W, H };
+      rebuildContainer3D();
+      updateStackHeightBadge();
+    }
+
+    function syncContainerInputsFromState() {
+      document.getElementById('contL').value = state.container.L;
+      document.getElementById('contW').value = state.container.W;
+      document.getElementById('contH').value = state.container.H;
+      const key = `${state.container.L}x${state.container.W}x${state.container.H}`;
+      const presetSel = document.getElementById('containerPreset');
+      if (key === '5890x2350x2275') presetSel.value = '20std';
+      else if (key === '12031x2352x2275') presetSel.value = '40std';
+      else if (key === '12031x2352x2585') presetSel.value = '40hc';
+      else presetSel.value = 'custom';
+    }
+
+    function updateMouseCoords(event) {
+      const rect = renderer.domElement.getBoundingClientRect();
+      mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+    }
+
+    function onPointerDown(event) {
+      if (event.button !== 0) return;
+      updateMouseCoords(event);
+      raycaster.setFromCamera(mouse, camera);
+
+      const intersects = raycaster.intersectObjects(stacksGroup.children, true);
+      if (intersects.length > 0) {
+        let obj = intersects[0].object;
+        while (obj && !obj.userData.stackId) obj = obj.parent;
+        if (obj && obj.userData.stackId) {
+          const stack = state.stacks.find(s => s.id === obj.userData.stackId);
+          if (stack) {
+            pushUndoSnapshot();
+            selectStack(stack.id);
+            isDragging = true;
+            controls.enabled = false;
+            const planeHit = new THREE.Vector3();
+            raycaster.ray.intersectPlane(dragPlane, planeHit);
+            dragOffset.set(planeHit.x * 1000 - stack.x, 0, planeHit.z * 1000 - stack.z);
+          }
+        }
+      }
+    }
+
+    function onPointerMove(event) {
+      updateMouseCoords(event);
+      raycaster.setFromCamera(mouse, camera);
+
+      if (isDragging) {
+        const stack = getSelectedStack();
+        if (!stack) return;
+        const planeHit = new THREE.Vector3();
+        if (raycaster.ray.intersectPlane(dragPlane, planeHit)) {
+          const rawX = planeHit.x * 1000 - dragOffset.x;
+          const rawZ = planeHit.z * 1000 - dragOffset.z;
+          const snapped = applyMagneticSnap(stack, rawX, rawZ);
+          stack.x = snapped.x;
+          stack.z = snapped.z;
+          stack.meshGroup.position.set(stack.x / 1000, 0, stack.z / 1000);
+          validateAllStacks();
+          updateMetrics();
+          updateSelectedUI();
+        }
+        return;
+      }
+
+      // Hover tooltip over 3D stacks
+      const tooltip = document.getElementById('hoverTooltip');
+      const intersects = raycaster.intersectObjects(stacksGroup.children, true);
+      if (intersects.length > 0) {
+        let obj = intersects[0].object;
+        while (obj && !obj.userData.stackId) obj = obj.parent;
+        if (obj && obj.userData.stackId) {
+          const s = state.stacks.find(st => st.id === obj.userData.stackId);
+          if (s) {
+            const dims = getStackDims(s);
+            const devs = s.tiers.filter(t => t.type === 'unit').length;
+            const rect = document.getElementById('canvasContainer').getBoundingClientRect();
+            tooltip.style.left = `${Math.min(rect.width - 210, event.clientX - rect.left + 14)}px`;
+            tooltip.style.top = `${Math.max(10, event.clientY - rect.top - 14)}px`;
+            document.getElementById('tooltipTitle').textContent = s.skuName;
+            document.getElementById('tooltipSub').textContent = `${dims.lenX}×${dims.widZ}×${s.totalHeight} mm • ${devs} units`;
+            tooltip.classList.remove('hidden');
+            return;
+          }
+        }
+      }
+      tooltip.classList.add('hidden');
+    }
+
+    function onPointerUp() {
+      if (isDragging) {
+        isDragging = false;
+        controls.enabled = true;
+      }
+    }
+
+    // --- CAMERA PRESETS ---
+    function setCameraView(view) {
+      const L = state.container.L / 1000;
+      const W = state.container.W / 1000;
+      const H = state.container.H / 1000;
+      controls.target.set(L / 2, H * 0.35, W / 2);
+
+      if (view === 'iso') {
+        camera.position.set(L * 1.35, H * 2.4, W * 2.8);
+      } else if (view === 'top') {
+        controls.target.set(L / 2, 0, W / 2);
+        camera.position.set(L / 2, Math.max(L * 1.15, 6.5), W / 2 + 0.01);
+      } else if (view === 'side') {
+        camera.position.set(L / 2, H * 0.65, Math.max(L * 1.15, 6.0));
+      } else if (view === 'door') {
+        camera.position.set(L + 4.2, H * 0.85, W / 2);
+      }
+      controls.update();
+    }
+
+    // --- UI METRICS & LIVE MIX ANALYTICS ---
+    function updateSelectedUI() {
+      const stack = getSelectedStack();
+      const labelEl = document.getElementById('selectedStackLabel');
+      const coordsEl = document.getElementById('selectedCoords');
+
+      if (!stack) {
+        labelEl.textContent = 'None selected';
+        coordsEl.innerHTML = `<span>Pos: —</span><span>Size: —</span>`;
+        return;
+      }
+      const dims = getStackDims(stack);
+      labelEl.textContent = `${stack.skuName}`;
+      coordsEl.innerHTML = `
+        <span>X:${stack.x} Z:${stack.z} mm</span>
+        <span>${dims.lenX}×${dims.widZ}×${stack.totalHeight}</span>
+      `;
+    }
+
+    function updateMetrics() {
+      const stackCount = state.stacks.length;
+      let totalPallets = 0;
+      let totalUnits = 0;
+      let usedFloorArea = 0;
+      let usedVol = 0;
+
+      const mixGroups = {};
+
+      for (const s of state.stacks) {
+        const dims = getStackDims(s);
+        const pCount = s.tiers.filter(t => t.type === 'pallet').length;
+        const uCount = s.tiers.filter(t => t.type === 'unit').length;
+
+        totalPallets += pCount;
+        totalUnits += uCount;
+        usedFloorArea += dims.lenX * dims.widZ;
+        usedVol += dims.lenX * dims.widZ * s.totalHeight;
+
+        const key = s.skuName;
+        if (!mixGroups[key]) {
+          mixGroups[key] = { name: s.skuName, color: s.color, stacks: 0, units: 0, floorArea: 0 };
+        }
+        mixGroups[key].stacks++;
+        mixGroups[key].units += uCount;
+        mixGroups[key].floorArea += dims.lenX * dims.widZ;
+      }
+
+      const contFloorArea = state.container.L * state.container.W;
+      const contVol = contFloorArea * state.container.H;
+      const floorPct = contFloorArea > 0 ? Math.min(100, (usedFloorArea / contFloorArea) * 100) : 0;
+      const volPct = contVol > 0 ? Math.min(100, (usedVol / contVol) * 100) : 0;
+
+      document.getElementById('statStacks').textContent = stackCount;
+      document.getElementById('statPallets').textContent = totalPallets;
+      document.getElementById('statUnits').textContent = `${totalUnits} units`;
+      document.getElementById('statFloorPct').textContent = `${floorPct.toFixed(1)}%`;
+      document.getElementById('statVolPct').textContent = `${volPct.toFixed(1)}%`;
+      document.getElementById('mixTotalSummary').textContent = `${stackCount} stacks / ${totalUnits} units`;
+
+      // Render Mix Ratio Bar & Breakdown Table
+      const ratioBar = document.getElementById('mixRatioBar');
+      const mixList = document.getElementById('mixBreakdownList');
+      ratioBar.innerHTML = '';
+      mixList.innerHTML = '';
+
+      const entries = Object.values(mixGroups);
+      if (entries.length === 0) {
+        mixList.innerHTML = `<div class="text-[11px] text-slate-500 italic">Container is empty. Add or multiply saved SKUs above.</div>`;
+      } else {
+        entries.forEach(item => {
+          const stackShare = stackCount > 0 ? ((item.stacks / stackCount) * 100).toFixed(0) : 0;
+          const floorShare = usedFloorArea > 0 ? ((item.floorArea / usedFloorArea) * 100).toFixed(0) : 0;
+
+          const seg = document.createElement('div');
+          seg.style.width = `${stackShare}%`;
+          seg.style.backgroundColor = item.color;
+          seg.title = `${item.name}: ${stackShare}% of stacks (${floorShare}% floor)`;
+          ratioBar.appendChild(seg);
+
+          const row = document.createElement('div');
+          row.className = 'flex items-center justify-between bg-slate-900/80 px-2.5 py-1.5 rounded-lg border border-slate-700/60';
+          row.innerHTML = `
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="w-2.5 h-2.5 rounded-sm shrink-0" style="background-color: ${item.color}"></span>
+              <span class="text-slate-200 font-medium truncate">${item.name}</span>
+            </div>
+            <div class="font-mono text-[11px] text-slate-300 shrink-0">
+              <span class="text-white font-semibold">${item.stacks}</span> stks (${item.units}u) • <span class="text-cyan-300 font-bold">${stackShare}%</span>
+            </div>
+          `;
+          mixList.appendChild(row);
+        });
+      }
+    }
+
+    function showToast(msg) {
+      const box = document.getElementById('toastBox');
+      box.textContent = msg;
+      box.classList.remove('opacity-0');
+      if (toastTimeout) clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => box.classList.add('opacity-0'), 2400);
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+      renderer.render(scene, camera);
+    }
+  </script>
+</body>
+</html>
